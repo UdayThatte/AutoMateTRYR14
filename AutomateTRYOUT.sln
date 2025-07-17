@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2002
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomateTRYOUT", "AutomateTRYOUT\AutomateTRYOUT.csproj", "{766EACE2-80A6-47F0-A61F-8B717E504ACA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{766EACE2-80A6-47F0-A61F-8B717E504ACA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{766EACE2-80A6-47F0-A61F-8B717E504ACA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{766EACE2-80A6-47F0-A61F-8B717E504ACA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{766EACE2-80A6-47F0-A61F-8B717E504ACA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {42074823-D877-491F-8AAA-475C44FDFDE0}
+	EndGlobalSection
+EndGlobal

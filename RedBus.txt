@@ -1,0 +1,149 @@
+
+Operator Code,Vehicle No,RouteNo,Route Name,Pax,Trip,Stat,Total Stops,Crnt Stop,Crnt Stop name,DateTime
+SRIDURGA,KA19AA1234,232,SHIVMOGA-KOLLUR-KPR,1,2,D,65,51,KLR (KOLLUR),2022-06-18 15:58:20
+
+
+Select 
+max(A.td_stg_from),
+min(A.td_stg_from)
+From `newver_ticketdetails` A 
+where  
+A.Mc_Serial = '22030078'
+and A.td_ticket_code <> 'DTLS'
+and A.bi_waybill = '8105'
+and A.td_trip_no = 2
+
+****************************************
+**************************************** LAST RECORD
+select
+A.id,
+A.Mc_serial,
+A.ClientID,
+A.td_route_no,
+(select CONCAT(rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.rp_routeno = A.td_route_no and rp.ClientID = A.ClientID) as 'Route Name',
+A.td_full_ticket+A.td_half_ticket+A.td_pass_ticket as 'Passengers',
+A.td_trip_no,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction',
+(select rp.rp_noofstops from newver_routeprogramming rp where rp.rp_routeno = A.td_route_no and rp.ClientID = A.ClientID) as 'Total Stops',
+A.td_stg_from,
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+A.bi_ticket_datetime,
+B.wbp_vehicalno
+from `newver_ticketdetails` A 
+Left Join `newver_waybillprogramming` B
+ON A.ClientID = B.ClientID AND A.Mc_Serial = B.Machineno
+where  
+A.Mc_Serial = '22020064'
+and A.td_ticket_code <> 'DTLS'
+and A.td_ticket_code <> 'CASE'
+and A.bi_waybill = '895'
+order by id desc limit 1 ;
+
+
+order by id desc, 
+CASE (A.td_stg_from < A.td_stg_to)
+  WHEN 1 THEN 'A.td_stg_from desc'
+  ELSE 'A.td_stg_from asc'
+ END
+Limit 1;
+
+
+
+*********************************************
+Select * from todays_records A where 
+A.bi_ticket_datetime = (select max(B.bi_ticket_datetime) as Time from todays_records  B Where   B.Mc_serial = '21030012')
+AND A.Mc_Serial = '21030012'
+and A.ClientId = 'DURGAMBA'
+
+
+
+Drop view todays_records ;
+CREATE VIEW todays_records as 
+Select id,A.ClientID,A.Mc_serial,A.bi_waybill,A.td_trip_no,A.td_route_no,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction',
+A.td_stg_from, A.td_stg_to,
+A.bi_ticket_datetime,
+A.td_full_ticket+A.td_half_ticket+A.td_pass_ticket as 'Passengers',
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_to And rps.ClientID = A.ClientID),'Not Defined') as 'ToStg'
+FROM `newver_ticketdetails` A
+WHERE DATE(`bi_ticket_datetime`) = CurDate()
+AND A.td_Ticket_code <> 'DTLS'
+ORDER BY A.bi_waybill,A.bi_ticket_datetime ASC;
+
+
+
+============== All last records
+select 
+A.ClientID,
+A.td_ticket_num,
+A.Mc_Serial,
+A.td_route_no,
+A.td_stg_from,
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+A.bi_ticket_datetime,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction'
+from `newver_ticketdetails` A,
+(select B.Mc_Serial as Machine,B.ClientID as Client,max(B.bi_ticket_datetime) as Time from `newver_ticketdetails` B Where Date(B.bi_ticket_datetime) = CurDate() AND B.td_ticket_code <> 'DTLS' group by ClientID,Mc_Serial) TodayRecs
+where A.ClientID=TodayRecs.Client 
+and A.bi_ticket_datetime = TodayRecs.Time
+and A.Mc_Serial = TodayRecs.Machine
+
+
+
+============== For selected machine
+select 
+A.ClientID,
+A.td_ticket_num,
+A.Mc_Serial,
+A.td_route_no,
+A.td_stg_from,
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+A.bi_ticket_datetime,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction'
+from `newver_ticketdetails` A,
+(select B.Mc_Serial as Machine,B.ClientID as Client,max(B.bi_ticket_datetime) as Time from `newver_ticketdetails` B Where Date(B.bi_ticket_datetime) = CurDate() AND B.td_ticket_code <> 'DTLS'  and B.Mc_serial = '20010026' Group by B.ClientID ) TodayRecs
+where A.ClientID=TodayRecs.Client 
+and A.bi_ticket_datetime = TodayRecs.Time
+and A.Mc_Serial = TodayRecs.Machine
+
+
+== for selected machine and client
+select
+A.ClientID,
+A.Mc_Serial,
+A.td_ticket_num,
+A.td_route_no,
+A.td_stg_from,
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+A.bi_ticket_datetime,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction'
+from `newver_ticketdetails` A
+where  
+A.bi_ticket_datetime = (select max(B.bi_ticket_datetime) as Time from `newver_ticketdetails` B Where B.td_ticket_code <> 'DTLS'  and B.Mc_serial = '20010026' and B.ClientId = 'APMHEBRI' )
+AND A.Mc_Serial = '20010026'
+==================
+
+
+
+select
+A.ClientID,
+A.Mc_serial,
+A.td_route_no,
+A.td_stg_from,
+IFNULL((select CONCAT(rps.rpsd_stgcode, ' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno = 1 
+AND rps.rpsd_routeno = A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID = A.ClientID),'Not Defined') as 'FromStg', 
+A.bi_ticket_datetime,
+if((A.td_stg_from < A.td_stg_to),'U','D') as 'Direction'
+from `newver_ticketdetails` A
+where  
+A.bi_ticket_datetime = (select max(B.bi_ticket_datetime) as Time from `newver_ticketdetails` B Where   B.Mc_serial = '21030012')
+AND A.Mc_Serial = '21030012'
+and A.td_ticket_code <> 'DTLS'
+and A.ClientId = 'DURGAMBA'

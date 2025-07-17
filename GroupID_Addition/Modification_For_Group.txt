@@ -1,0 +1,50 @@
+For Modifying the project to handle Group concept need to modify
+1.newver_clientmaster
+2.SP Report_InspPerform
+3.Report_Insp_Perform.aspx.cs  
+4.Login.aspx.cs
+5 Site1.Master.cs
+6. Report_Pass_Track.apx.cs Pass Track query directly in code
+7. SP AuthenticationUser
+
+In table newver_clientmaster
+Two fiedls are added GroupID and ClientRole
+When single user is there GroupID would be same as ClientID and ClientRole = 1
+If a Client is part of larger Group then the Master Client ID would have ClientRole = 1
+
+and other members (ClientID) in the Group would have ClientRole = 0
+Index Grp is added on GroupID
+
+=====================
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_InspPerform`(IN `InspCode_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25), IN `GroupID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT 
+td.ClientId as 'CID',
+DATE(bi_ticket_datetime)  as 'Date',
+td.ClientId as 'Operator',
+Mc_Serial as 'MachineNo',
+bi_waybill as 'WaybillNo',
+wp.wbp_vehicalno as 'VehicleNo',
+td_ticket_time as 'Time',
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) 
+from newver_routeprogramming rp where rp.ClientID=td.ClientID 
+And  rp.rp_routeno= td.td_route_no),td.td_route_no) as 'Route',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no 
+AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),td.td_stg_from) as 'FromStg',
+td_trip_no as 'Trip',
+td_con_case_code as 'Insp',
+td_doc_rec_no as 'Type' 
+FROM `newver_ticketdetails` as td
+LEFT JOIN `newver_waybillprogramming` wp
+ON td.bi_waybill = wp.wbp_waybillno AND td.ClientId = wp.ClientID
+
+where td_ticket_code = 'CASE'
+AND DATE(bi_ticket_datetime) BETWEEN FromDt_in AND ToDt_in
+AND td_con_case_code like InspCode_in
+AND td.ClientId IN(SELECT ClientID from newver_clientmaster where GroupID = GroupID_in)
+ORDER BY Date,Time,WaybillNo,Trip ASC;
+END$$
+DELIMITER ;

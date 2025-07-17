@@ -1,0 +1,229 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using MySql.Data.MySqlClient;
+using System.Configuration;
+using System.Data;
+using System.Text.RegularExpressions;
+
+namespace AutomateTRYOUT.Administrator
+{
+    public partial class WayBillMaster : System.Web.UI.Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+
+            if (!this.IsPostBack)
+            {
+                (this.Master as Site1).CheckSessionVar();
+                //uday (this.Master as Site1).SetActiveMenu("menu_Administrator");
+                (this.Master as Site1).SetActiveMenu("menu_master");
+                // txtFromDateTime.Text = System.DateTime.Now.AddDays(-1).ToString("dd/MM/yyyy ").Replace('-', '/');
+                //  txtToDateTime.Text = DateTime.Now.ToString("dd/MM/yyyy ").Replace('-', '/');
+                //  txtFromDateTime.Text = System.DateTime.Now.AddDays(-1).ToString("dd-MM-yy ").Replace('-', '-');
+                //   txtToDateTime.Text = DateTime.Now.ToString("dd-MM-yy ").Replace('-', '-');
+                bindGridView();
+                //ddlConductorFill();
+                // ddlWayBillFill();
+                // ddlMachineFill();
+                // txtFromDateTime.Enabled = false;
+                // txtToDateTime.Enabled = false;
+                //  ddlTicketTypeFill();
+                // ddlRouteFill();
+
+            }
+
+
+        }
+
+        protected void bindGridView()
+
+        {
+            try
+            {
+                string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+                using (MySqlConnection con = new MySqlConnection(constr))
+                {
+
+                    //using (var cmd = new MySqlCommand("GetWayBillMaster"))
+                    using (var cmd = new MySqlCommand("SELECT nwb.id,nwb.wbp_waybillno as 'wbp_waybillno',nwb.WBCloseCode,nwb.WBCloserRemar as 'WBCloserRemar',nwb.status as 'status',DATE_FORMAT(nwb.ModifiedTS,'%d/%m/%y  %H:%i') as 'ModifiedTS' From newver_waybillprogramming nwb where nwb.ClientID='"+ Session["ClientID"].ToString() + "' And  nwb.status='ISSUED' ORDER BY nwb.wbp_waybillno DESC LIMIT 1000; "))
+                    //using (var cmd = new MySqlCommand("SELECT nwb.id,nwb.cd_condrdetails_code as 'wbp_waybillno',nwb.status as 'status',nwb.cd_date as 'ModifiedTS', nwb.cd_deponame as 'WBCloserRemar' From newver_conductordetails nwb where nwb.ClientID='AUTOMATE' LIMIT 100; "))
+                    // using (MySqlCommand cmd = new MySqlCommand("SearchTicketView"))
+                    {
+                        using (MySqlDataAdapter da = new MySqlDataAdapter())
+                        {
+                            cmd.Connection = con;
+                            //cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.CommandType = CommandType.Text;
+                            cmd.CommandTimeout = 600;
+                            //cmd.Parameters.AddWithValue("@ClientID_in", Session["ClientID"].ToString());
+                            da.SelectCommand = cmd;
+                            //using (DataSet dt = new DataSet()) uday 151119
+                            using (DataTable dt = new DataTable())
+                            {
+                                da.Fill(dt);
+                                gvWayBillMaster.DataSource = dt;
+                                gvWayBillMaster.DataBind();
+
+                            }
+                        }
+                    }
+                }
+                if (Session["RoleName"].ToString() == "NormalUser") gvWayBillMaster.Columns[0].Visible = false; //uday
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
+        protected void gvWayBillMaster_PageIndexChanged(object sender, EventArgs e)
+        {
+            bindGridView();
+
+        }
+
+        protected void gvWayBillMaster_PageIndexChanging(object sender, GridViewPageEventArgs e)
+        {
+
+            gvWayBillMaster.PageIndex = e.NewPageIndex;
+
+            gvWayBillMaster.EditIndex = -1;
+        }
+
+        protected void gvWayBillMaster_RowUpdated(object sender, GridViewUpdatedEventArgs e)
+        {
+           
+
+
+        }
+
+        protected void gvWayBillMaster_RowEditing(object sender, GridViewEditEventArgs e)
+        {
+            gvWayBillMaster.EditIndex = e.NewEditIndex;
+            bindGridView();
+        }
+
+        protected void gvWayBillMaster_RowUpdating(object sender, GridViewUpdateEventArgs e)
+        {
+            try
+            {
+
+
+
+                bool blnReturnVal = false;
+                Label ID = gvWayBillMaster.Rows[e.RowIndex].FindControl("lblAddressIDGrid") as Label;
+
+                //DropDownList status = (DropDownList)gvWayBillMaster.Rows[e.RowIndex].FindControl("ddstatus");
+                string DESIGID = ((DropDownList)(gvWayBillMaster.Rows[e.RowIndex].Cells[2].FindControl("ddstatus"))).SelectedValue; //uday 161119
+
+                // TextBox WBCloseCode = (TextBox)gvWayBillMaster.Rows[e.RowIndex].FindControl("txtWBCloseCode");
+                TextBox WBCloserRemar = (TextBox)gvWayBillMaster.Rows[e.RowIndex].Cells[4].FindControl("txtWBCloserRemar");
+
+                // string status = (DropDownList)(gvWayBillMaster.Rows[e.RowIndex].Cells[3].FindControl("ddstatus"));
+
+                string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+                using (MySqlConnection con = new MySqlConnection(constr))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand(
+
+                        "UpdateWayBillMaster"
+
+                        ))
+                    {
+                        using (MySqlDataAdapter da = new MySqlDataAdapter())
+                        {
+                            con.Open();
+                            cmd.Connection = con;
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.CommandTimeout = 600;
+                            //  cmd.Parameters.AddWithValue("@ClientID_in", "HTCGAJ01");
+                            cmd.Parameters.AddWithValue("@ClientID_in", Session["ClientID"].ToString());
+                            cmd.Parameters.AddWithValue("@status_in", DESIGID);//uday 161119 status.SelectedValue);
+                            cmd.Parameters.AddWithValue("@id_in", ID.Text);
+                           // cmd.Parameters.AddWithValue("@WBCloseCode_in", WBCloseCode.Text);
+                            cmd.Parameters.AddWithValue("@WBCloserRemar_in", WBCloserRemar.Text+" By:"+ Session["username"].ToString());
+
+                          
+
+                            using (DataTable dt = new DataTable())
+                           {
+                                cmd.ExecuteNonQuery();
+
+                                blnReturnVal = Convert.ToBoolean(cmd.ExecuteNonQuery());
+
+
+                            }
+                            con.Close();
+                        }
+                    }
+                }
+                gvWayBillMaster.EditIndex = -1;
+                bindGridView();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        protected void gvWayBillMaster_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+        {
+
+            gvWayBillMaster.EditIndex = -1;
+            bindGridView();
+        }
+
+        //public bool DeleteMethod(String CheckListID)
+        //{
+        //    bool blnReturnValDel = false;
+
+
+
+        //    string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+        //    using (MySqlConnection con = new MySqlConnection(constr))
+        //    {
+        //        using (MySqlCommand cmd = new MySqlCommand(
+
+        //            "DeleteWayBillLMaster"
+
+        //            ))
+        //        {
+        //            using (MySqlDataAdapter da = new MySqlDataAdapter())
+        //            {
+        //                con.Open();
+        //                cmd.Connection = con;
+        //                cmd.CommandType = CommandType.StoredProcedure;
+        //                cmd.CommandTimeout = 600;
+        //                cmd.Parameters.AddWithValue("@id_in", CheckListID);
+        //                blnReturnValDel = Convert.ToBoolean(cmd.ExecuteNonQuery());
+        //                con.Close();
+        //            }
+        //        }
+        //    }
+
+           
+
+        //    return blnReturnValDel;
+
+        //}
+
+        //uday
+        //protected void gvWayBillMaster_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        //{
+        //    Label lblMACHINEID = gvWayBillMaster.Rows[e.RowIndex].FindControl("lblid") as Label;
+
+         
+        //    DeleteMethod(lblMACHINEID.Text);
+        //    gvWayBillMaster.EditIndex = -1;
+
+
+        //    bindGridView();
+          
+        //}
+    }
+}

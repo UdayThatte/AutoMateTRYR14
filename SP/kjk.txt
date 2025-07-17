@@ -1,0 +1,35 @@
+SELECT 
+td.td_ticket_date as Date,
+td.Mc_Serial as MachineNo,
+td.wytd_waybill_no as 'WaybillNo',
+
+IFNULL((select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID),'Not Specified')
+ as vehicalno,
+ 
+ IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),td.td_route_no),'Not Specified') as
+ Route,
+ SUM(IFNULL(td.td_ticket_fare+ IFNULL(td.td_pass, 0) , 0)) as 'TotalSaleA'
+
+
+FROM
+newver_ticketdetails td
+ where 1=1
+AND td.ClientID = 'HTCGAJ01'  AND td.bi_ticket_datetime  
+
+BETWEEN '2017-07-16' And '2017-07-17'
+
+	  
+
+
+
+
+
+
+
+GROUP BY td.ClientID,td.td_ticket_date,td.Mc_Serial,td.wytd_waybill_no,td.td_route_no
+
+order by 
+td.ClientID,td.td_ticket_date,td.Mc_Serial,td.wytd_waybill_no,td.td_route_no
+
+ limit 50;

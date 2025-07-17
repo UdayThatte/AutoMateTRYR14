@@ -1,0 +1,6 @@
+show status like 'Con%'
+
+show status like 'max%'
+
+show processlist
+

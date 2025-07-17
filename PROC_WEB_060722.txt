@@ -1,0 +1,4531 @@
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `AgentPerformanceReport`(IN `ClientID_in` VARCHAR(25), IN `FromDT_in` DATETIME, IN `ToDT_in` DATETIME, IN `CommPerc_in` FLOAT)
+    NO SQL
+BEGIN
+
+	SELECT 
+
+A.AgCode as AgentID,
+
+A.AgName as AgentName,
+
+A.Location as Location,
+
+A.TicketSold as TicketsSold,
+
+A.TicketAmount as TicketsAmount,
+
+CommPerc_in as CommissionPercentage,
+
+Round((A.TicketAmount*CommPerc_in /100),0) as Commission
+
+
+
+ FROM
+
+(
+
+	SELECT 
+
+	AgCode,
+
+	AgName,
+
+	AtStg as Location,
+
+	(SELECT count(1) from newver_ticketdetails td where td.ClientID = ag.ClientID and 
+
+ CAST(substr(td.td_con_case_code,10,3) AS UNSIGNED) =ag.AgCode And td.bi_ticket_datetime BETWEEN FromDT_in and ToDT_in) as TicketSold,
+
+(SELECT sum(td.td_ticket_fare) from newver_ticketdetails td where td.ClientID = ag.ClientID And  td.bi_ticket_datetime BETWEEN FromDT_in and ToDT_in and  CAST(substr(td.td_con_case_code,10,3) AS UNSIGNED) =ag.AgCode) as  TicketAmount
+
+	FROM 
+
+	agents ag
+
+	WHERE 
+
+	ClientID=ClientID_in 
+
+limit 25
+
+)A;
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `AuthenticationUser`(IN `ClientID_in` VARCHAR(25), IN `usernameTextBox_in` VARCHAR(25), IN `PasswordTextBox_in` VARCHAR(50))
+    NO SQL
+SELECT um.ClientID,um.UserID,um.RoleName,um.UserName,um.IsActive From usermasternew um Where um.ClientID=ClientID_in
+
+ AND um.UserName=usernameTextBox_in AND um.Password=PasswordTextBox_in 
+
+And um.IsActive=1$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `BipinGetRecentTicketsWayBill`(IN `ClientID_in` VARCHAR(50))
+    NO SQL
+BEGIN
+SElect td.wytd_waybill_no as wbp_waybillno From  newver_ticketdetails td Where td.ClientID=ClientID_in GROUP by td.wytd_waybill_no; 
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Checknewverrouteprogramming`(IN `ClientID_in` VARCHAR(25), IN `routeno_in` INT, IN `triangleno_in` INT, IN `startstg_in` VARCHAR(40), IN `endstg_in` VARCHAR(40))
+    NO SQL
+BEGIN
+
+	
+
+
+
+select * from newver_routeprogramming Where  ClientID=ClientID_in AND rp_routeno=routeno_in ANd rp_triangleno=triangleno_in ANd rp_startstg=startstg_in ANd rp_endstg=endstg_in
+
+;
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `CheckRPStageDetails`(IN `rpsd_triangleno_in` INT, IN `rpsd_stgcode_in` VARCHAR(40), IN `rpsd_stgnamee_in` VARCHAR(40), IN `rpsd_routeno_in` INT, IN `ClientID_in` INT(40))
+    NO SQL
+BEGIN
+
+	select *
+
+
+
+ from newver_rpstagedetails Where rpsd_triangleno=rpsd_triangleno_in And rpsd_stgcode=rpsd_stgcode_in  And 
+
+rpsd_stgnamee=rpsd_stgnamee_in And rpsd_routeno=rpsd_routeno_in AND ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `CheckUserName`(IN `UserName_in` VARCHAR(25), IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+	
+
+select UserName,Password,IsActive,RoleName,ClientID from usermasternew Where UserName=UserName_in And ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `CommentNATOLL01`()
+    NO SQL
+Update clientdata3 a inner join natoll01 b on 
+a.id = b.source_row_id
+SET 
+IsSplitSuccessful=1
+WHERE IsSplitSuccessful is NULL$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `CopyTicketConfig`(IN `SrcClient` VARCHAR(25), IN `DstClient` VARCHAR(25))
+    NO SQL
+BEGIN
+CREATE table temporary_table AS SELECT * FROM `newver_clientticketconfig` WHERE ClientID = SrcClient;
+UPDATE temporary_table SET ClientID= DstClient;
+INSERT INTO `newver_clientticketconfig` SELECT * FROM temporary_table;
+DROP TABLE temporary_table;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DailyClean`()
+    NO SQL
+BEGIN
+DECLARE exit handler for sqlexception
+  BEGIN
+    ROLLBACK;
+  END;
+ 
+DECLARE exit handler for sqlwarning
+ BEGIN
+   ROLLBACK;
+ END;
+ 
+
+START TRANSACTION; 
+INSERT INTO `newver_ticketdetails_bak` 
+SELECT * FROM `newver_ticketdetails` WHERE DATE(bi_ticket_datetime) < ADDDATE(CURRENT_DATE(), INTERVAL -31 DAY);
+
+DELETE FROM `newver_ticketdetails` WHERE DATE(bi_ticket_datetime) < ADDDATE(CURRENT_DATE(), INTERVAL -31 DAY);
+
+COMMIT;
+
+OPTIMIZE TABLE `newver_ticketdetails`;
+OPTIMIZE TABLE `newver_ticketdetails_bak`;
+
+
+
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `CheckETMName`(IN `HID_in` VARCHAR(200))
+    NO SQL
+BEGIN
+
+select * from etmlist ETM Where  ETM.HID=HID_in AND ETM.STATUS=0;
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteClientMaster`(IN `id_in` INT)
+    NO SQL
+BEGIN
+
+DELETE FROM  newver_clientmaster   
+
+WHERE id=id_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteETMMaster`(IN `HID_in` VARCHAR(200))
+    NO SQL
+BEGIN
+
+DELETE FROM  etmlist   
+
+WHERE HID=HID_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteRPStageDetails`(IN `id_in` INT)
+    NO SQL
+BEGIN
+
+DELETE FROM  newver_rpstagedetails
+
+WHERE id=id_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteRouteProgramming`(IN `id_in` INT)
+    NO SQL
+BEGIN
+
+DELETE FROM  newver_routeprogramming
+
+WHERE id=id_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteUserMasternew`(IN `UserID_in` INT)
+    NO SQL
+BEGIN
+
+DELETE from usermasternew  Where UserID=UserID_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeleteWayBillLMaster`(IN `id_in` INT)
+    NO SQL
+BEGIN
+
+DELETE FROM  newver_waybillprogramming   
+
+WHERE id=id_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeletedivdepotmanagementMaster`(IN `ID_in` INT)
+    NO SQL
+BEGIN
+
+DELETE FROM  newver_divdepotmanagement 
+
+WHERE ID=ID_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `DeletenewverrpstagedetailsMaster`(IN `Id_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+Delete From newver_rpstagedetails Where id=Id_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GenerateNewWayBillNo`()
+    NO SQL
+BEGIN
+
+
+
+DECLARE newWBID INT;
+
+
+
+
+
+
+
+SELECT FLOOR(RAND() * 4001) + 100 into newWBID ;
+
+
+
+INSERT INTO newver_waybillprogramming( ClientID,  wbp_waybillno,  wbp_condrdetails,  wbp_driver1details,  wbp_vehicalno,  wbp_divisionname,  wbp_divisioncode,  wbp_deponame,  wbp_depocode,  wbp_date,  wbp_waybillschedule,  wbp_etmno,  status) VALUES (ClienntID_in, newWBID   ,ConductorCode_in,DriverCode_in,VehicleNo_in,DivName_in,DivCode_in ,DepoName_in,DepoCode_in,WBP_Date_in,WBSchedule_in,'0000','ISSUED');
+
+
+
+ END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetAgentMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+	Select   age.id, age.AgCode, age.AgName, age.Pswd, age.AtStg, age.IsActive, age.CardsIssued, age.IssuedBy, age.IssuedDt as IssueDt From agents age Where age.ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetAllTicketView`()
+    NO SQL
+BEGIN
+
+	
+
+SELECT  `id` , `ClientID`, `wytd_waybill_no`, `td_trip_no`, `td_route_no`,IFNULL((select Concat(rp.rp_routeno,':',rp.rp_startstg,'-',rp.rp_endstg) 
+
+ From newver_routeprogramming rp where rp_routeno=td.td_route_no And rp.ClientID=ClientID_in),'Not Defined') as routeName ,`td_ticket_code`, `td_ticket_num`,
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 AND
+
+ rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from And rps.ClientID=ClientID_in),'Not Defined') as FromStage,
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=ClientID_in),'Not Defined') as TOStage,`td_stg_from`, `td_stg_to`,
+
+ `td_full_ticket`, `td_half_ticket`, `td_luggage_ticket`, `td_pass_ticket`, `td_ticket_fare`, `td_ticket_date`, `td_ticket_time`, `td_doc_rec_no`, 
+
+`td_con_case_code`, `td_state_code`, `td_half`, `td_full`, `td_bustype`, `Mc_Serial`, `Div_Name`, `Dep_Name`  FROM newver_ticketdetails  td Where 
+
+td.ClientID=ClientID_in order by id desc;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetBusMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+Select  id,bd_busid,bd_bustype,bd_busfare From newver_busdetails Where ClientID=ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetClientDataWithMaxID`(IN `ClientID_in` VARCHAR(255), IN `NumberOfRows_in` INT)
+BEGIN
+
+
+
+DECLARE limit_no INT;
+
+SET limit_no = NumberOfRows_in;
+
+SELECT payload FROM clientdata3 WHERE ClientID = ClientID_in LIMIT 10; 
+
+
+
+ END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetClientInformation`()
+BEGIN
+
+SELECT ClientID,  PayloadHeader, UniqueDataFieldNumbers, 
+                                    FieldLengths as StandardLength FROM  clientmaster;
+                                    
+  end$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetClientMaster`()
+    NO SQL
+BEGIN
+
+	
+
+ SELECT cl.ID,cl.`ClientID`,cl.IsActive,cl.Description 
+
+ From newver_clientmaster cl 
+
+ Where cl.IsActive=1; 
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetConductorDetails`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+select cd_condrdetails_code from newver_conductordetails where ClientID=ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetConductorMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+Select  id,cd_condrdetails_code,cd_condrdetails,cd_vehicalno,cd_divisionname,cd_divisioncode,cd_deponame,cd_depocode,cd_date,cd_etmno,status, cd_deponame 
+From newver_conductordetails Where ClientID=ClientID_in LIMIT 1000$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetDivAndDepoList`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+	
+
+
+
+Select  dvi.ID,CONCAT(DivisionName,'',DepotName) as DivisionName from newver_divdepotmanagement dvi Where dvi.ClientID=ClientID_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetDivAndDepoMaster`(IN `ClientID_in` VARCHAR(35))
+    NO SQL
+BEGIN
+
+	
+
+
+
+Select  dvi.ID,dvi.ClientID,dvi.DivisionName,dvi.DepotName,dvi.DepotCode,dvi.DepotName,dvi.DivisionCode from newver_divdepotmanagement dvi Where dvi.ClientID=ClientID_in; 
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetDriverMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+Select drn.id,drn.drv_code,drn.name,drn.status,(select CONCAT(divmg.DivisionName,'-',divmg.DepotName) 
+
+from newver_divdepotmanagement divmg Where divmg.DivisionCode=drn.drv_code And divmg.ClientID=ClientID_in) as DepoName From newver_drivernames drn Where ClientID=ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetETMDetailsMaster`(IN `HID_in` VARCHAR(300))
+    NO SQL
+BEGIN 
+
+ Select ETm.MACHINEID, ETm.ClientID, ETm.MACHINENAME, ETm.HID, ETm.STATUS from  etmlist ETm Where ETm.HID=HID_in; 
+
+ END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetETMMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+SELECT   et.ClientID,et.MACHINEID, et.MACHINENAME, et.HID, CASE
+
+        WHEN et.STATUS = '0' THEN N'Active'
+
+        ELSE N'Inactive' 
+
+    END AS  STATUSDetails,et.STATUS
+
+  
+
+FROM etmlist et 
+
+WHERE et.ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetInspectorMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+SELECT i.id,i.code,i.name,i.password,i.status from inspector i
+
+where i.ClientID=ClientID_in;	
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetMachine`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+select MACHINENAME from etmlist where ClientID=ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetMachineWiseCondrdetails`(IN `ClientID_in` VARCHAR(30), IN `MachineNo_in` VARCHAR(30))
+    NO SQL
+SElect nwp.wbp_condrdetails from newver_waybillprogramming nwp Where nwp.ClientID=ClientID_in And  nwp.MachineNo=MachineNo_in GROUP By nwp.wbp_condrdetails$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRecentTicketsWayBill`(IN `ClientID_in` VARCHAR(30))
+    NO SQL
+BEGIN
+SElect td.wytd_waybill_no as wbp_waybillno From  newver_ticketdetails td Where td.ClientID=ClientID_in 
+GROUP by td.wytd_waybill_no
+ORDER BY td.wytd_waybill_no DESC
+LIMIT 200;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRecentWayBillList`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+select wbp.wbp_waybillno from newver_waybillprogramming wbp where 
+
+ wbp.ClientID=ClientID_in 
+
+ 
+
+ 
+
+ 
+
+ ;	
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRechargeCent`(IN `ClientID_in` VARCHAR(100))
+    NO SQL
+SELECT DISTINCT(centID) as CENTNAME from `cct_multi_card_details` WHERE ClientID = ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRevenueStatement`()
+BEGIN
+
+SELECT td_ticket_date, Dep_Name, Mc_Serial, wytd_waybill_no,
+
+td_route_no,td_trip_no, 
+
+min(bi_ticket_datetime) as FirstTicketTime,
+
+max(bi_ticket_datetime) as LastTicketTime,
+
+
+
+count(1) as TicketCount, sum(td_ticket_fare) as Revenue, sum(td_half) as HalfPaxRevenue, sum(td_full) as FullTicketRevenue, sum(td_Full_Ticket) as FullPaxCount, sum(td_Half_Ticket) as HalfTicketCount
+
+FROM `ticketdetails` 
+
+group by td_ticket_date, Dep_Name, Mc_Serial, wytd_waybill_no,
+
+td_route_no,td_trip_no
+
+ORder by td_ticket_date, Dep_Name, Mc_Serial asc, wytd_waybill_no asc,
+
+td_route_no asc,td_trip_no asc;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRevenueStatementWithParam`(IN `FromDateKey_in` BIGINT, IN `ToDateKey_in` BIGINT, IN `ClientID_in` VARCHAR(250))
+BEGIN
+
+SELECT td_ticket_date, Dep_Name, Mc_Serial, wytd_waybill_no,
+
+td_route_no,td_trip_no, 
+
+min(bi_ticket_datetime) as FirstTicketTime,
+
+max(bi_ticket_datetime) as LastTicketTime,
+
+
+
+count(1) as TicketCount, sum(td_ticket_fare) as Revenue, sum(td_half) as HalfPaxRevenue, sum(td_full) as FullTicketRevenue, sum(td_Full_Ticket) as FullPaxCount, sum(td_Half_Ticket) as HalfTicketCount
+
+FROM `ticketdetails` 
+
+where bi_date_key between FromDateKey_in and ToDateKey_in and
+
+ClientID in (ClientID_in)
+
+group by td_ticket_date, Dep_Name, Mc_Serial, wytd_waybill_no,
+
+td_route_no,td_trip_no
+
+ORder by td_ticket_date, Dep_Name, Mc_Serial asc, wytd_waybill_no asc,
+
+td_route_no asc,td_trip_no asc;
+
+
+
+  end$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRoute`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+	
+
+select id,CONCAT(id,'-',rp_startstg,'-', rp_endstg)  as RouteName from newver_routeprogramming where ClientID=ClientID_in;	
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRouteMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+Select  id,ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status From newver_routeprogramming Where ClientID=ClientID_in  ORDER BY rp_routeno asc;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRoleMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+Select  id,ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops
+
+,rp_stgmarathiname,
+
+CASE WHEN farechanged=0 THEN "No" ELSE "Yes" END as farechanged,
+
+status From newver_routeprogramming 
+
+Where 
+
+ClientID=ClientID_in And rp_triangleno=1 
+
+ORDER BY rp_routeno asc;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetRouteWiseRouteDetails`(IN `ClientID_In` VARCHAR(25), IN `Id` INT)
+    NO SQL
+select *,
+
+rpd.rpsd_stgno as StageNo
+
+,rpd.rpsd_stgcode as StageCode
+
+,rpd.rpsd_stgnamee as stageName
+
+,rpd.rpsd_km as Distance
+
+,rpd.rpsd_farenormal as Fare
+
+from 
+
+newver_rpstagedetails rpd
+
+Where 
+
+ClientID=ClientID_In 
+
+And 
+
+rpsd_routeno=Id$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetTicketCodeAll`(IN `ClientID_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+	
+
+
+
+select ctk.td_ticket_code as TicketCode,ctk.ClientID From newver_ticketdetails ctk Where ctk.ClientID=ClientID_in;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetTicketType`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+select id,td_ticket_code from newver_ticketdetails where ClientID=ClientID_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetUser`(IN `ClientID_in` VARCHAR(25), IN `CrntRole` VARCHAR(50))
+    NO SQL
+BEGIN
+IF (CrntRole = "Manager") THEN
+ SELECT um.UserID,um.Password,um.CreatedBy,IsActive,um.RoleName,um.UserName,um.ClientID 
+ From UserMasternew um 
+ Where IsActive= 1 
+ And um.ClientID=ClientID_in 
+ And  um.RoleName Not IN ('SuperAdministrator','Super Administrator','Administrator');
+elseif ((CrntRole = "Administrator") OR (CrntRole = "SuperAdministrator") )THEN
+	SELECT um.UserID,um.Password,um.CreatedBy,IsActive,um.RoleName,um.UserName,um.ClientID 
+	From UserMasternew um 
+	Where IsActive= 1 
+	And um.ClientID=ClientID_in
+	And  um.RoleName Not IN ('SuperAdministrator','Super Administrator');
+elseif (CrntRole = "NormalUser") then
+	SELECT um.UserID,um.Password,um.CreatedBy,IsActive,um.RoleName,um.UserName,um.ClientID 
+	From UserMasternew um 
+	Where IsActive= 1 
+	And um.ClientID=ClientID_in
+	And  um.RoleName='NormalUser';
+END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetUserBipin`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+SELECT um.UserID,um.Password,um.CreatedBy,IsActive,um.RoleName,um.UserName,um.ClientID From UserMasternew um Where IsActive=1 And um.ClientID=ClientID_in And  um.RoleName Not IN ('SuperAdministrator','Super Administrator')$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetUserIdWiseDetails`(IN `UserID_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+
+
+
+
+SELECT um.UserID,um.`Password`,um.CreatedBy,IsActive,um.RoleName,um.UserName,um.ClientID From UserMasternew um Where um.UserID=UserID_in  ;  
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillFill`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+select wbp.wbp_waybillno from newver_waybillprogramming wbp where 
+
+ wbp.ClientID=ClientID_in 
+
+ 
+
+;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillFillForTicket`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+select DISTINCT wytd_waybill_no as wbp_waybillno from newver_ticketdetails td where 
+
+td.ClientID=ClientID_in
+
+
+
+
+
+
+
+
+
+ group by 
+
+wytd_waybill_no$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillMaster`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+SELECT nwb.id,nwb.wbp_waybillno  as 'wbp_waybillno',
+        nwb.WBCloseCode,
+        nwb.WBCloserRemar as 'WBCloserRemar',
+        nwb.status as 'status',
+        DATE_FORMAT(nwb.ModifiedTS,'%d/%m/%y  %H:%i') as 'ModifiedTS' 
+        From newver_waybillprogramming nwb 
+        where nwb.ClientID=ClientID_in And  nwb.status="ISSUED" ORDER BY nwb.wbp_waybillno DESC LIMIT 1000$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillWiseDetails`(IN `ClientID_in` VARCHAR(25), IN `ddlWyBill_in` VARCHAR(25))
+    NO SQL
+SELECT * FROM
+(SELECT ClientID as 'wClient',wbp_waybillno as 'WaybillNo',wbp_date  as 'wbp_date',wbp_condrdetails as 'ConductorCode',status as 'status' 
+FROM `newver_waybillprogramming`  
+WHERE ClientID = ClientID_in AND wbp_waybillno = ddlWyBill_in )as  wbp
+LEFT JOIN
+(SELECT 
+TS_WayBill as 'WaybillNo',
+TS_McSerial as 'MachineNo',
+IFNULL((SUM(TS_Inflow) - SUM(TS_Outflow)),0)  as 'NetCash',
+IFNULL((SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)),0) as 'TotalFare',
+IFNULL((SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)),0)  as 'ConcessionPaxCount',
+IFNULL(SUM(TS_AmtConc),0) as 'ConcessionFare',
+IFNULL(SUM(TS_ExpnCnt),0) as 'ExpCnt',
+IFNULL(SUM(TS_Outflow),0) as 'Expenses',
+IFNULL(SUM(TS_PnltyCnt),0) as 'PntyCnt',
+IFNULL(SUM(TS_AmtPnlty),0)  as 'Penalty',
+IFNULL(SUM(TS_FullPax),0) as 'FullPaxCount',
+IFNULL(SUM(TS_AmtFull),0) as 'FullTicketFare',
+IFNULL(SUM(TS_HlfPax),0) as 'HalfPaxCount',
+IFNULL(SUM(TS_AmtHlf),0)as 'HalfTicketFare',
+IFNULL(SUM(TS_LugCnt),0) as 'LuggageCount',
+IFNULL(SUM(TS_AmtLug),0) as 'LuggageFare',
+IFNULL(SUM(TS_PassCnt),0) as 'PassCount',
+IFNULL(SUM(TS_RFIDCardUseCnt),0) as 'RFIDCardCnt',
+IFNULL((SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)),0) as 'RfidPaxCnt',
+IFNULL(SUM(TS_AmtRFIDUse),0) as 'RFIDAmt',
+IFNULL(SUM(TS_RFIDRchgCnt),0) as 'RFIDRchrgCnt',
+IFNULL(SUM(TS_AmtRFIDRecharge),0) as 'RFIDRchrgAmt'
+FROM `newver_trip_sheet`
+WHERE TS_ClientID = ClientID_in AND TS_WayBill = ddlWyBill_in) as ts
+ON wbp.WaybillNo = ts.WaybillNo$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillWiseDetailsBipin`(IN `ClientID_in` VARCHAR(25), IN `ddlWyBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT
+
+	wbp.MachineNo as MachineNo,
+
+	wbp.wbp_date,
+
+	wbp.wbp_waybillno as 'WaybillNo',
+
+	wbp.`status`,
+
+  wbp.wbp_condrdetails as 'ConductorCode',
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as TotalFare,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as ConcessionFare,
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('EXPN') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Expenses,
+
+
+
+(SELECT IFNULL(sum(td.td_pass), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('PNTY') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Penalty,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_full * td.td_full_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as FullTicketFare,
+
+ 
+
+(SELECT IFNULL(sum(td.td_half * td.td_half_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as HalfTicketFare,
+
+
+
+(SELECT  IFNULL(sum(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+
+AND td.td_ticket_code in ('LUGG')
+
+)  as 'LuggageFare',
+
+
+
+IFNULL((SELECT  count(1) FROM newver_ticketdetails td WHERE  td.td_con_case_code like '%A%' AND 
+
+wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID),0)  as AgentTicket,
+
+
+
+(SELECT IFNULL(sum(td.td_pass), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as PassFare,
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)   
+
+as 'PaxCount',
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no    
+
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+
+as 'FullPaxCount',
+
+(SELECT IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no 
+
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+
+as 'HalfPaxCount',
+
+
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as 'ConcessionPaxCount',
+
+
+
+(SELECT  IFNULL(count(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+
+AND td.td_ticket_code in ('LUGG')
+
+)  as 'LuggageCount',
+
+
+
+(SELECT IFNULL(count(td.td_pass_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID AND 
+
+td.td_ticket_code in ('PASS')) 
+
+as 'PassCount'
+
+
+
+	
+
+FROM
+
+	newver_waybillprogramming wbp
+
+where
+
+	wbp.ClientID = ClientID_in 
+
+AND 
+
+
+
+
+
+wbp.wbp_waybillno IN ( CASE WHEN ddlWyBill_in ='ALL' THEN wbp.wbp_waybillno ELSE ddlWyBill_in   END)  
+
+     
+
+
+
+
+
+order by wbp.wbp_waybillno desc 
+
+limit 50;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `GetWayBillWiseDetailsOldUday`(IN `ClientID_in` VARCHAR(25), IN `ddlWyBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT
+td.Mc_Serial as 'MachineNo',
+(SELECT wbp2.wbp_date from newver_waybillprogramming wbp2 where  wbp2.ClientID = ClientID_in AND wbp2.wbp_waybillno = ddlWyBill_in) as 'wbp_date',
+td.wytd_waybill_no as 'WaybillNo',
+(SELECT wbp.status from newver_waybillprogramming wbp where  wbp.ClientID = ClientID_in AND wbp.wbp_waybillno = ddlWyBill_in) as 'status',
+(SELECT wbp1.wbp_condrdetails from newver_waybillprogramming wbp1 where  wbp1.ClientID = ClientID_in AND wbp1.wbp_waybillno = ddlWyBill_in) as 'ConductorCode',
+(SUM(IFNULL((CASE WHEN td.td_ticket_code='CONC' OR td.td_ticket_code='LUGG' OR td.td_ticket_code='PNTY' OR td.td_ticket_code='0000' OR ( td.td_ticket_code='PASS'  AND (CAST(td.td_doc_rec_no as UNSIGNED) > 2)) THEN td.td_ticket_fare ELSE 0  END ),0))) - (SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0))) - (SUM(IFNULL((CASE WHEN td.td_ticket_code='PASS' AND (CAST(td.td_doc_rec_no as UNSIGNED) > 2) THEN td.td_pass ELSE 0  END ),0))) as 'NetCash',
+
+
+SUM(IFNULL((CASE WHEN td.td_ticket_code='CONC' OR td.td_ticket_code='LUGG' OR td.td_ticket_code='PNTY' OR td.td_ticket_code='0000' OR ( td.td_ticket_code='PASS'  AND (CAST(td.td_doc_rec_no as UNSIGNED) > 2)) THEN td.td_ticket_fare ELSE 0  END ),0)) as 'TotalFare',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN (td.td_full_ticket+td.td_pass_ticket+td.td_half_ticket) ELSE 0  END ),0)) as 'ConcessionPaxCount',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'ConcessionFare',
+
+COUNT((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare else NULL END )) as 'ExpCnt',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'Expenses',
+COUNT((CASE WHEN td.td_ticket_code='PNTY' THEN td.td_ticket_fare else NULL END )) as 'PntyCnt',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='PNTY' THEN td.td_pass ELSE 0  END ),0)) as 'Penalty',
+SUM(IFNULL((CASE WHEN (td.td_ticket_code='0000' OR td.td_ticket_code='PNTY') THEN (td.td_full_ticket+td.td_pass_ticket) ELSE 0  END ),0)) as 'FullPaxCount',
+
+SUM(IFNULL((CASE WHEN (td.td_ticket_code ='0000'OR td.td_ticket_code='PNTY') THEN(td.td_full ) ELSE 0  END ),0)) as 'FullTicketFare',
+SUM(IFNULL((CASE WHEN (td.td_ticket_code='0000' OR td.td_ticket_code='PNTY') THEN td.td_half_ticket ELSE 0  END ),0)) as 'HalfPaxCount',
+
+SUM(IFNULL((CASE WHEN (td.td_ticket_code ='0000' OR td.td_ticket_code ='PNTY') THEN(td.td_half) ELSE 0  END ),0)) as 'HalfTicketFare',
+SUM(td.td_luggage_ticket) as 'LuggageCount',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='LUGG' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'LuggageFare',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='PASS' THEN (td.td_full_ticket+td.td_pass_ticket+td.td_half_ticket) ELSE 0  END ),0)) as 'PassCount' 
+FROM newver_ticketdetails td 
+WHERE td.ClientID = ClientID_in AND td.bi_waybill = ddlWyBill_in 
+
+AND td.td_ticket_code IN (select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  )
+
+GROUP BY td.wytd_waybill_no;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Getrouteprogramming`(IN `id_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+SELECT * from newver_routeprogramming Where rp_routeno=id_in; 
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `IndexPageView`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `ddlConductor_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+
+
+
+
+SELECT
+
+	wbp.MachineNo as MachineNo,
+
+	wbp.wbp_date,
+
+	wbp.wbp_waybillno as 'WaybillNo',
+
+	wbp.`status`,
+
+  wbp.wbp_condrdetails as 'ConductorCode',
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as TotalFare,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as ConcessionFare,
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('EXPN') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Expenses,
+
+
+
+(SELECT IFNULL(sum(td.td_pass), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('PNTY') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Penalty,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_full * td.td_full_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as FullTicketFare,
+
+ 
+
+(SELECT IFNULL(sum(td.td_half * td.td_half_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as HalfTicketFare,
+
+
+
+(SELECT  IFNULL(sum(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+
+AND td.td_ticket_code in ('LUGG')
+
+)  as 'LuggageFare',
+
+
+
+IFNULL((SELECT  count(1) FROM newver_ticketdetails td WHERE  td.td_con_case_code like '%A%' AND 
+
+wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID),0)  as AgentTicket,
+
+
+
+(SELECT IFNULL(sum(td.td_pass), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as PassFare,
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)   
+
+as 'PaxCount',
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no    
+
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+
+as 'FullPaxCount',
+
+(SELECT IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no 
+
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+
+as 'HalfPaxCount',
+
+
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as 'ConcessionPaxCount',
+
+
+
+(SELECT  IFNULL(count(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+
+AND td.td_ticket_code in ('LUGG')
+
+)  as 'LuggageCount',
+
+
+
+(SELECT IFNULL(count(td.td_pass_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID AND 
+
+td.td_ticket_code in ('PASS')) 
+
+as 'PassCount'
+
+
+
+	
+
+FROM
+
+	newver_waybillprogramming wbp
+
+where
+
+	wbp.ClientID = ClientID_in 
+
+AND 
+
+wbp.MachineNo IN ( CASE WHEN ddlMachineNo_in  ='ALL' THEN wbp.MachineNo ELSE ddlMachineNo_in    END)   And 
+
+
+
+wbp.wbp_waybillno IN ( CASE WHEN ddlWyBill_in ='ALL' THEN wbp.wbp_waybillno ELSE ddlWyBill_in   END) And 
+
+     
+
+wbp.wbp_condrdetails IN ( CASE WHEN ddlConductor_in  ='ALL' THEN wbp.wbp_condrdetails ELSE ddlConductor_in    END)
+
+
+
+
+
+order by wbp.wbp_waybillno desc 
+
+limit 50;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `IndexPageViewNew`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+
+
+SELECT
+
+ wbp.id as id,
+
+	wbp.MachineNo as MachineNo,
+
+	wbp.wbp_date,
+
+	wbp.wbp_waybillno as 'WaybillNo',
+
+	wbp.`status`,
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as condrName,
+
+ wbp.wbp_driver1details  as driverdetails ,
+
+  wbp.wbp_condrdetails as 'ConductorCode',
+
+wbp.wbp_vehicalno as vehicalno 
+
+
+
+
+
+
+
+
+
+
+
+	
+
+FROM
+
+	newver_waybillprogramming wbp
+
+where
+
+	wbp.ClientID = ClientID_in 
+
+
+
+order by wbp.wbp_waybillno desc 
+
+limit 200;
+
+
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `IndexPageViewNewUday`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT
+ wbp.id as id,
+	wbp.MachineNo as MachineNo,
+	wbp.wbp_date,
+	wbp.wbp_waybillno as 'WaybillNo',
+	wbp.`status`,
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as condrName,
+
+IFNULL((select dd.name from newver_drivernames dd Where dd.drv_code = wbp.wbp_driver1details And dd.ClientID=wbp.ClientID),wbp.wbp_driver1details ) as driverdetails,
+
+wbp.wbp_vehicalno as vehicalno 
+FROM
+	newver_waybillprogramming wbp
+where
+	wbp.ClientID = ClientID_in
+) as t1
+
+LEFT JOIN 
+(SELECT 
+ts.TS_WayBill as 'Wybill', 
+IFNULL((SUM(ts.TS_Inflow)-SUM(ts.TS_Outflow)),0) as 'NetCash'
+FROM newver_trip_sheet ts 
+WHERE ts.TS_ClientID = ClientID_in 
+Group by ts.TS_WayBill ) as  t2 
+ON  t1.WaybillNo = t2.Wybill
+order by t1.WaybillNo desc
+LIMIT 200;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `IndexPageViewOld`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `ddlConductor_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+
+
+SELECT
+
+	wbp.MachineNo as MachineNo,
+
+	wbp.wbp_date,
+
+	wbp.wbp_waybillno as 'WaybillNo',
+
+	wbp.`status`,
+
+  wbp.wbp_condrdetails as 'ConductorCode',
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as TotalFare,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as ConcessionFare,
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('EXPN') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Expenses,
+
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	('PNTY') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Penalty,
+
+
+
+
+
+(SELECT IFNULL(sum(td.td_full * td.td_full_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as FullTicketFare,
+
+ 
+
+(SELECT IFNULL(sum(td.td_half * td.td_half_ticket), 0) 
+
+	FROM newver_ticketdetails td WHERE  
+
+ td.td_ticket_code IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+AND 
+
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+
+ as HalfTicketFare,
+
+
+
+(SELECT  IFNULL(sum(td.td_luggage), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as LuggageFare,
+
+
+
+IFNULL((SELECT  count(1) FROM newver_ticketdetails td WHERE  LENGTH(td.td_con_case_code)=4 AND td.td_con_case_code like '%A%' AND 
+
+wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID),0)  as AgentTicket,
+
+
+
+(SELECT IFNULL(sum(td.td_pass), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as PassFare,
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)   as 'PaxCount',
+
+(SELECT IFNULL(sum(td.td_luggage_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 'LuggageCount',
+
+(SELECT IFNULL(sum(td.td_pass_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as 'PassCount'
+
+
+
+	
+
+FROM
+
+	newver_waybillprogramming wbp
+
+where
+
+	wbp.ClientID = ClientID_in 
+
+AND 
+
+wbp.MachineNo IN ( CASE WHEN ddlMachineNo_in  ='ALL' THEN wbp.MachineNo ELSE ddlMachineNo_in    END)   And 
+
+
+
+wbp.wbp_waybillno IN ( CASE WHEN ddlWyBill_in ='ALL' THEN wbp.wbp_waybillno ELSE ddlWyBill_in   END) And 
+
+     
+
+wbp.wbp_condrdetails IN ( CASE WHEN ddlConductor_in  ='ALL' THEN wbp.wbp_condrdetails ELSE ddlConductor_in    END)
+
+
+
+order by wbp.wbp_waybillno desc 
+
+limit 50;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertAgentMasterData`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+INSERT INTO agents
+SELECT * FROM agents_temp
+WHERE ClientID=ClientID_in;
+DELETE 
+FROM agents_temp
+WHERE ClientID=ClientID_in;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertAgentMaster`(IN `ClientID` VARCHAR(25), IN `param1` INT, IN `param2` VARCHAR(250), IN `param3` VARCHAR(25), IN `param4` VARCHAR(250), IN `param5` TINYINT, IN `param6` INT, IN `param7` VARCHAR(25), IN `param8` VARCHAR(50))
+    NO SQL
+BEGIN
+ 
+IF (select count(*) from agents Where agents.ClientID=ClientID AND AgCode=param1 And AgName=param2)=0 THEN
+    BEGIN
+    INSERT into agents_temp(ClientID,AgCode,AgName,Pswd,AtStg,IsActive,Cardsissued,IssuedBy,IssuedDt) 
+VALUES(ClientID,param1,param2,param3,param4,param5,param6,param7,param8);
+    END;
+    ELSE 
+   BEGIN
+        
+   END;
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertClientMaster`(IN `ClientID_in` VARCHAR(25), IN `Description_in` VARCHAR(250))
+    NO SQL
+BEGIN
+
+	
+
+
+
+Insert into newver_clientmaster (ClientID,IsActive,Description) Values (ClientID_in,1,Description_in);
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertClientTicketConfig`(IN `ClientID_in` VARCHAR(25), IN `TicketCode_in` VARCHAR(5), IN `ConcaseCode_in` VARCHAR(25), IN `DocketInterpretation_in` VARCHAR(250), IN `IsRevenue_in` BIT(1), IN `IsTicketRecord_in` BIT(1), IN `IsExpense_in` BIT(1), IN `Comment_in` VARCHAR(250), IN `IsActive_in` BIT(1))
+    NO SQL
+BEGIN
+
+INSERT into newver_clientticketconfig(ClientID,TicketCode,ConcaseCode,DocketInterpretation,IsRevenue,IsTicketRecord,IsExpense,Comment,IsActive) 
+
+VALUES(ClientID_in,TicketCode_in,ConcaseCode_in,DocketInterpretation_in,IsRevenue_in,IsTicketRecord_in,IsExpense_in,Comment_in,0);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertConductorMaster`(IN `ClientID` VARCHAR(25), IN `param1` VARCHAR(100), IN `param2` VARCHAR(100), IN `param3` VARCHAR(100), IN `param4` VARCHAR(100), IN `param5` VARCHAR(100), IN `param6` VARCHAR(100), IN `param7` VARCHAR(100), IN `param8` VARCHAR(100), IN `param9` VARCHAR(100))
+    NO SQL
+BEGIN
+
+ IF (select count(*) from newver_conductordetails Where  newver_conductordetails.ClientID = ClientID AND cd_condrdetails_code=param1 And cd_divisionname=param4)=0 THEN
+    
+    BEGIN
+    INSERT into newver_conductordetails_temp(ClientID,cd_condrdetails_code,cd_condrdetails,cd_vehicalno,cd_divisionname,cd_divisioncode,cd_deponame,cd_depocode,cd_date,cd_etmno,status) 
+                                      VALUES(ClientID,param1,param2,param3,param4,param5,param6,param7,param8,param9,'Y');
+    END;
+    ELSE 
+   BEGIN
+        
+   END;
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertDriverMaster`(IN `ClientID` VARCHAR(25), IN `param1` VARCHAR(100), IN `param2` VARCHAR(100))
+    NO SQL
+BEGIN
+ IF (select count(*) from newver_drivernames Where newver_drivernames.ClientID=ClientID AND drv_code=param1 )=0 THEN
+
+    BEGIN
+		INSERT into newver_drivernames_temp(ClientID,drv_code,name,status) 
+		VALUES(ClientID,param1,param2,'Y');
+    END;
+    ELSE 
+   BEGIN
+   END;
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertConductorMasterData`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+	
+
+
+INSERT INTO newver_conductordetails(ClientID,cd_condrdetails_code,cd_condrdetails,cd_vehicalno,cd_divisionname,cd_divisioncode,cd_deponame,cd_depocode,cd_date,cd_etmno,status)
+SELECT ClientID,cd_condrdetails_code,cd_condrdetails,cd_vehicalno,cd_divisionname,cd_divisioncode,cd_deponame,cd_depocode,cd_date,cd_etmno,status FROM newver_conductordetails_temp
+WHERE newver_conductordetails_temp.ClientID=ClientID_in;
+DELETE 
+FROM newver_conductordetails_temp
+WHERE newver_conductordetails_temp.ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertDriverMasterData`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+INSERT INTO newver_drivernames (ClientID,drv_code,name,status) 
+SELECT ClientID,drv_code,name,status  FROM newver_drivernames_temp
+WHERE newver_drivernames_temp.ClientID=ClientID_in;
+DELETE 
+FROM newver_drivernames_temp
+WHERE newver_drivernames_temp.ClientID=ClientID_in;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertETMMaster`(IN `MACHINEID_in` VARCHAR(30), IN `ClientID_in` VARCHAR(30), IN `MACHINENAME_in` VARCHAR(30), IN `HID_in` VARCHAR(200), IN `STATUS_in` INT)
+    NO SQL
+BEGIN
+
+INSERT into etmlist(MACHINEID,ClientID,MACHINENAME,HID,STATUS) 
+
+VALUES(MACHINEID_in,ClientID_in,MACHINENAME_in,HID_in,STATUS_in);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertInspectorMaster`(IN `ClientID` VARCHAR(25), IN `param1` VARCHAR(10), IN `param2` VARCHAR(100), IN `param3` VARCHAR(100))
+    NO SQL
+BEGIN
+ 
+IF (select count(*) from inspector Where inspector.ClientID=ClientID AND code=param1)=0 THEN
+    BEGIN
+  INSERT into inspector_temp(ClientID,code,name,password,status) 
+  VALUES(ClientID,param1,param2,param3,'Y');
+    END;
+    ELSE 
+   BEGIN
+        
+   END;
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertInspectorMasterData`(IN `ClientID_In` VARCHAR(25))
+    NO SQL
+BEGIN
+INSERT INTO inspector(ClientID,code,name,password,status) 
+SELECT ClientID,code,name,password,status FROM inspector_temp
+WHERE ClientID=ClientID_in;
+DELETE 
+FROM inspector_temp
+WHERE ClientID=ClientID_in;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertRPStageDetails`(IN `ClientID_in` VARCHAR(25), IN `routeno_in` INT, IN `bustype_in` VARCHAR(60), IN `triangleno_in` INT, IN `stgcode_in` VARCHAR(60), IN `stgnamee_in` INT(60), IN `stgnamem_in` VARCHAR(60), IN `km_in` VARCHAR(60), IN `stgno_in` VARCHAR(60), IN `sub_in` VARCHAR(60), IN `intrsstg_in` VARCHAR(60), IN `farenormal_in` VARCHAR(60), IN `stgid_in` VARCHAR(60))
+    NO SQL
+BEGIN
+
+	INSERT into newver_rpstagedetails
+
+(ClientID,rpsd_routeno,rp_bustype,rpsd_triangleno,rpsd_stgcode,rpsd_stgnamee,rpsd_stgnamem,rpsd_km,rpsd_stgno,rpsd_sub,rpsd_intrsstg,rpsd_farenormal,
+
+status,rpsd_stgid) 
+
+VALUES(ClientID_in,routeno_in,bustype_in,triangleno_in,stgcode_in,stgnamee_in,stgnamem_in,km_in,stgno_in,sub_in,intrsstg_in,farenormal_in,'Y',stgid_in);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertRouteMaster`(IN `param1` INT, IN `param2` VARCHAR(100), IN `ClientID` VARCHAR(25), IN `param3` VARCHAR(100), IN `param4` INT, IN `param5` VARCHAR(100), IN `param6` VARCHAR(100), IN `param7` INT)
+    NO SQL
+BEGIN
+
+
+
+
+
+       INSERT into newver_routeprogramming_temp(ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status) 
+VALUES(ClientID,param1,param2,param3,param4,param5,param6,param7,'',0,'Y');
+ 
+
+
+        
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertRouteMasterData`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+INSERT INTO newver_routeprogramming (ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status) 
+SELECT ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status  FROM newver_routeprogramming_temp 
+WHERE ClientID=ClientID_in
+ON DUPLICATE KEY UPDATE  
+newver_routeprogramming.rp_routetype=newver_routeprogramming_temp.rp_routetype,
+newver_routeprogramming.rp_bustype=newver_routeprogramming_temp.rp_bustype,
+newver_routeprogramming.rp_triangleno=newver_routeprogramming_temp.rp_triangleno,
+newver_routeprogramming.rp_startstg=newver_routeprogramming_temp.rp_startstg,
+newver_routeprogramming.rp_endstg=newver_routeprogramming_temp.rp_endstg,
+newver_routeprogramming.rp_noofstops=newver_routeprogramming_temp.rp_noofstops,
+newver_routeprogramming.rp_stgmarathiname=newver_routeprogramming_temp.rp_stgmarathiname,
+newver_routeprogramming.farechanged=newver_routeprogramming_temp.farechanged,
+newver_routeprogramming.status=newver_routeprogramming_temp.status; 
+DELETE FROM newver_routeprogramming_temp
+WHERE ClientID=ClientID_in;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertStageMaster`(IN `ClientID` VARCHAR(25), IN `param1` VARCHAR(100), IN `param2` VARCHAR(100), IN `param3` VARCHAR(100), IN `param4` VARCHAR(100), IN `param5` VARCHAR(100), IN `param6` VARCHAR(100), IN `param7` VARCHAR(100), IN `param8` VARCHAR(100), IN `param9` VARCHAR(100), IN `param10` VARCHAR(100), IN `param11` VARCHAR(100))
+    NO SQL
+BEGIN
+
+
+      INSERT into newver_rpstagedetails_temp
+(ClientID,
+rpsd_routeno,
+rp_bustype,
+rpsd_triangleno,
+rpsd_stgcode,
+rpsd_stgnamee,
+rpsd_stgnamem,
+rpsd_km,
+rpsd_stgno,
+rpsd_sub,
+rpsd_intrsstg,
+rpsd_farenormal,
+status,
+rpsd_stgid) 
+VALUES(ClientID,
+param1,
+param2,
+param3,
+param4,
+param5,
+param6,
+param7,
+param8,
+param9,
+param10,
+param11,
+'Y',
+0);
+
+
+
+        
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertStageMasterData`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+ 
+INSERT INTO newver_rpstagedetails
+(ClientID,
+rpsd_routeno,
+rp_bustype,
+rpsd_triangleno,
+rpsd_stgcode,
+rpsd_stgnamee,
+rpsd_stgnamem,
+rpsd_km,
+rpsd_stgno,
+rpsd_sub,
+rpsd_intrsstg,
+rpsd_farenormal,
+status,
+rpsd_stgid)
+SELECT  
+ClientID,
+rpsd_routeno,
+rp_bustype,
+rpsd_triangleno,
+rpsd_stgcode,
+rpsd_stgnamee,
+rpsd_stgnamem,
+rpsd_km,
+rpsd_stgno,
+rpsd_sub,
+rpsd_intrsstg,
+rpsd_farenormal,
+status,
+rpsd_stgid
+FROM newver_rpstagedetails_temp
+WHERE ClientID=ClientID_in
+ON DUPLICATE KEY UPDATE  
+newver_rpstagedetails.rp_bustype = newver_rpstagedetails.rp_bustype,
+newver_rpstagedetails.rpsd_triangleno = newver_rpstagedetails.rpsd_triangleno,
+newver_rpstagedetails.rpsd_stgcode = newver_rpstagedetails.rpsd_stgcode,
+newver_rpstagedetails.rpsd_stgnamee = newver_rpstagedetails.rpsd_stgnamee,
+newver_rpstagedetails.rpsd_stgnamem = newver_rpstagedetails.rpsd_stgnamem,
+newver_rpstagedetails.rpsd_km = newver_rpstagedetails.rpsd_km,
+newver_rpstagedetails.rpsd_sub = newver_rpstagedetails.rpsd_sub,
+newver_rpstagedetails.rpsd_intrsstg = newver_rpstagedetails.rpsd_intrsstg,
+newver_rpstagedetails.rpsd_farenormal = newver_rpstagedetails.rpsd_farenormal,
+newver_rpstagedetails.status = newver_rpstagedetails.status,
+newver_rpstagedetails.rpsd_stgid = newver_rpstagedetails.rpsd_stgid;
+DELETE 
+FROM newver_rpstagedetails_temp
+WHERE ClientID=ClientID_in;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertdivdepotmanagementMaster`(IN `ClientID_in` VARCHAR(30), IN `DivisionCode_in` INT, IN `DivisionName_in` VARCHAR(100), IN `DepotCode_in` INT, IN `DepotName_in` INT(100))
+    NO SQL
+BEGIN
+
+INSERT into newver_divdepotmanagement(ClientID,DivisionCode,DivisionName,DepotCode,DepotName) 
+
+VALUES(ClientID_in,DivisionCode_in,DivisionName_in,DepotCode_in,DepotName_in);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `InsertUserMasternew`(IN `UserName_in` VARCHAR(250), IN `Password_in` VARCHAR(250), IN `RoleName_in` VARCHAR(100), IN `ClientID_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+	INSERT into usermasternew (UserName,Password,IsActive,RoleName,ClientID) 
+
+VALUES(UserName_in,Password_in,1,RoleName_in,ClientID_in);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Insertnewverrouteprogramming`(IN `ClientID_in` VARCHAR(25), IN `routeno_in` INT, IN `routetype_in` VARCHAR(60), IN `bustype_in` VARCHAR(60), IN `triangleno_in` INT, IN `startstg_in` VARCHAR(60), IN `endstg_in` VARCHAR(60), IN `noofstops_in` INT, IN `stgmarathiname_in` VARCHAR(60), IN `farechanged_in` INT)
+    NO SQL
+BEGIN
+
+
+
+INSERT into newver_routeprogramming(ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status) 
+
+VALUES(ClientID_in,routeno_in,routetype_in,bustype_in,triangleno_in,startstg_in,endstg_in,noofstops_in,stgmarathiname_in,farechanged_in,'Y');
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `MyAgentPerformanceReport`(IN `ClientID_in` VARCHAR(25), IN `FromDT_in` DATETIME, IN `ToDT_in` DATETIME, IN `CommPerc_in` FLOAT)
+    NO SQL
+BEGIN
+SELECT CAST(substr(A.`td_con_case_code`,10,3) as UNSIGNED) as AgentID,
+B.`AgName` AS AgentName,
+B.`AtStg` AS Location, 
+count(1) AS TicketsSold,
+SUM(A.`td_ticket_fare`) as TicketsAmount,
+CommPerc_in as CommissionPercentage,
+Round((SUM(A.`td_ticket_fare`) * CommPerc_in /100),0) as Commission 
+FROM `newver_ticketdetails` A 
+LEFT JOIN `agents` B ON (A.`ClientID` = B.`ClientID` AND CAST(substr(A.`td_con_case_code`,10,3) as UNSIGNED) = B.`AgCode`) 
+WHERE A.`ClientID`= ClientID_in AND CAST(substr(A.`td_con_case_code`,10,3) as UNSIGNED) > 0 and substr(A.`td_con_case_code`,9,1) = 'A' and A.`bi_ticket_datetime` BETWEEN FromDT_in and ToDT_in 
+GROUP BY AgentID;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `MyReportGetPass`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` INT)
+BEGIN
+SELECT
+td.id,
+td.wytd_waybill_no,
+td.td_ticket_num,
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from And rps.ClientID=td.ClientID),'Not Defined') as 'fromstg',
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=td.ClientID),'Not Defined') as 'tostg',
+td.td_stg_from,
+td.td_stg_to,
+
+
+
+CASE WHEN td.td_ticket_code='EXPN' THEN (td.td_ticket_fare*-1) ELSE td.td_ticket_fare END as 'Amount',
+IFNULL(td.td_full_ticket, 0) + IFNULL(td.td_half_ticket, 0) + IFNULL(td.td_pass_ticket, 0) as 'Pax',
+td.td_ticket_code,
+td.td_doc_rec_no,
+CONCAT(td.td_ticket_date," ",td.td_ticket_time) as 'DateTime'
+from newver_ticketdetails td where td.ClientID=ClientId_in
+And  td.td_ticket_code NOT IN('DTLS') And  td.bi_waybill=WayBill_in ORDER BY td.td_ticket_num ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `MyReportMIS`(IN `ClientID_in` VARCHAR(50), IN `FromDate_in` DATETIME, IN `ToDate_in` DATETIME)
+BEGIN
+SELECT * FROM
+(
+SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'conductorName',
+
+IFNULL((select dd.name from newver_drivernames dd Where dd.drv_code = wbp.wbp_driver1details And dd.ClientID=wbp.ClientID),wbp.wbp_driver1details ) as 'DriverName',
+wbp.wbp_vehicalno as 'vehicalno',
+DATE(wbp.CreatedDt) as 'Date',
+wbp.MachineNo as 'MachineNo' 
+FROM `newver_waybillprogramming` wbp 
+WHERE wbp.ClientID = ClientID_in AND (DATE(wbp.bi_date)
+BETWEEN FromDate_in And ToDate_in) 
+) as wbp1
+LEFT JOIN
+(
+SELECT
+TS_ClientID as 'tsclient',TS_Waybill as 'tswybill', DATE(`TS_TicketingDate`) as 'TickDate',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=TS_ClientID And  rp.rp_routeno= TS_RouteNo),TS_RouteNo),'Not Specified') as 'Route',
+SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04) as 'TotalSaleA',
+SUM(TS_AmtRFIDUse) as 'TotalRFIDuseType3',
+SUM(TS_AmtRFIDUse04) as 'TotalRFIDuseType4',
+SUM(TS_Outflow) as 'totalexpressC', SUM(TS_Inflow)-SUM(TS_Outflow) as  'TotalCollection', SUM(TS_TotTckts) as 'TotalTicketIssues',
+COUNT(TS_TripNo) as 'NoOfTrips',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+(IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = TS_ClientID and  rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno = TS_RouteNo),0) * IFNULL( MAX(TS_TripNo),0)) as TotalKms
+FROM `newver_trip_sheet` 
+WHERE TS_ClientID = ClientID_in
+GROUP BY tsclient,TickDate,TS_Waybill,TS_RouteNo) as ts
+ON tsclient = wClient AND tswybill = WaybillNo
+ORDER BY Date,tswybill,TickDate;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `NATOLL01_MoveUninsertedData`()
+INSERT IGNORE into
+  natoll01
+  (
+	McSerial,
+	InDate,
+	InTime,
+    InDateTime,  
+    VehMake,
+	RegNo,
+	VehType,
+	RateType,
+	AmtStr,
+    AmtInPaise,  
+	LocCode,
+ 	PckgLoc,
+    LaneSubLoc,  
+	OpName,
+	SplitSuccess,
+    source_row_id
+  )
+  select
+   SUBSTRING(payload,1,8) 
+  ,SUBSTRING(payload,10,8)  
+  ,SUBSTRING(payload,19,8)   
+  ,STR_TO_DATE(concat(SUBSTRING(payload,10,8) ,' ',SUBSTRING(payload,19,8) ),'%d/%m/%Y %H:%i:%s')
+  ,SUBSTRING(payload,28,16)   
+  ,SUBSTRING(payload,45,10)   
+  ,SUBSTRING(payload,56,16)   
+  ,SUBSTRING(payload,73,16)   
+  ,SUBSTRING(payload,90,7)   
+  ,CAST(SUBSTRING(payload,90,7)  as DECIMAL)*100
+  ,SUBSTRING(payload,98,2)   
+  ,SUBSTRING(payload,101,32)   
+  ,SUBSTRING(payload,134,2) 
+  ,SUBSTRING(payload,137,16) 
+  ,NULL
+  ,a.id
+  from  clientdata3 a
+ left join natoll01 b on 
+ a.id = b.source_row_id
+ WHERE b.source_row_id is NULL and a.ClientID = 'NATOLL01'$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `MyReportMIS_Test`(IN `ClientID_in` VARCHAR(50), IN `FromDate_in` DATETIME, IN `ToDate_in` DATETIME)
+BEGIN
+SELECT * FROM
+(
+SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'conductorName',
+
+IFNULL((select dd.name from newver_drivernames dd Where dd.drv_code = wbp.wbp_driver1details And dd.ClientID=wbp.ClientID),wbp.wbp_driver1details ) as 'DriverName',
+wbp.wbp_vehicalno as 'vehicalno',
+DATE(wbp.CreatedDt) as 'Date',
+wbp.MachineNo as 'MachineNo' 
+FROM `newver_waybillprogramming` wbp 
+WHERE wbp.ClientID = ClientID_in AND (DATE(wbp.bi_date)
+BETWEEN FromDate_in And ToDate_in) 
+) as wbp1
+LEFT JOIN
+(
+SELECT
+TS_ClientID as 'tsclient',TS_Waybill as 'tswybill', DATE(`TS_TicketingDate`) as 'TickDate',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=TS_ClientID And  rp.rp_routeno= TS_RouteNo),TS_RouteNo),'Not Specified') as 'Route',
+SUM(TS_Inflow)+SUM(TS_AmtRFIDUse) as 'TotalSaleA',SUM(TS_AmtRFIDUse) as 'TotalRFIDuseB',
+SUM(TS_Outflow) as 'totalexpressC', SUM(TS_Inflow)-SUM(TS_Outflow) as  'TotalCollection', SUM(TS_TotTckts) as 'TotalTicketIssues',
+COUNT(TS_TripNo) as 'NoOfTrips',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+(IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = TS_ClientID and  rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno = TS_RouteNo),0) * IFNULL( MAX(TS_TripNo),0)) as TotalKms
+FROM `newver_trip_sheet` 
+WHERE TS_ClientID = ClientID_in
+GROUP BY tsclient,TickDate,TS_Waybill,TS_RouteNo) as ts
+ON tsclient = wClient AND tswybill = WaybillNo
+ORDER BY Date,tswybill,TickDate;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Natoll_PackageWise`(IN `InFrmDate` DATETIME, IN `InToDate` DATETIME)
+BEGIN
+SELECT 
+DATE(InDateTime) as ForDt,
+ROUND(sum( case when  (LocCode BETWEEN 10 and 19)  then AmtInPaise/100 ELSE 0 end),2) as Pckg1,
+ROUND(sum( case when  (LocCode BETWEEN 20 and 29)  then AmtInPaise/100 ELSE 0 end),2) as Pckg2,
+ROUND(sum( case when  (LocCode BETWEEN 30 and 39)  then AmtInPaise/100 ELSE 0 end),2) as Pckg3,
+ROUND(sum( case when  (LocCode BETWEEN 40 and 49)  then AmtInPaise/100 ELSE 0 end),2) as Pckg4,
+ROUND(sum( case when  (LocCode BETWEEN 50 and 59)  then AmtInPaise/100 ELSE 0 end),2) as Pckg5,
+ROUND(sum( case when  (LocCode BETWEEN 50 and 59)  then AmtInPaise/100 ELSE 0 end),2) as Pckg6,
+ROUND(sum( case when  ((LocCode <10) OR (LocCode>69))then AmtInPaise/100 ELSE 0 end),2) as Wrong,
+ROUND(sum(AmtInPaise/100 ),2) as TotCol
+FROM `natoll01` WHERE LocCode=1 AND DATE(InDateTime) >= InFrmDate AND DATE(InDateTime) <= InToDate 
+GROUP by DATE(InDateTime) 
+ORDER by DATE(InDateTime) ASC;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `RecentTicketsViewBipin`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `ddlConductor_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+
+
+
+
+
+
+SELECT 
+
+td.Mc_Serial,
+
+td.wytd_waybill_no,
+
+td.td_ticket_date,
+
+td.td_ticket_time,
+
+td.td_ticket_num,
+
+(select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no) as RouteName,
+
+
+
+
+
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) From 
+
+newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),'Not Defined') as FromStage,
+
+
+
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) From newver_rpstagedetails rps2 where  
+
+ rps2.rpsd_routeno =td.td_route_no AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),'Not Defined') as TOStage,
+
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+td.td_ticket_code,
+
+
+
+td.td_con_case_code,
+
+
+
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+
+
+CASE WHEN td.td_ticket_code
+
+ IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+THEN  IFNULL(td.td_full * td.td_full_ticket, 0) ELSE 0 END as 'FullTicketFare',
+
+
+
+
+
+CASE WHEN td.td_ticket_code
+
+ IN 
+
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+
+AND
+
+ td.td_ticket_code NOT IN 
+
+ 	('CONC')
+
+THEN  IFNULL(td.td_half * td.td_half_ticket, 0) ELSE 0 END as 'HalfTicketFare',
+
+
+
+IFNULL(td.td_luggage, 0) as 'LuggageFare',
+
+
+
+IFNULL(td.td_pass, 0) as 'PassFare',
+
+
+
+IFNULL(td.td_full_ticket, 0)+IFNULL(td.td_half_ticket, 0) as 'PaxCount',
+
+
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+
+
+
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+
+
+
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_full_ticket>0 THEN 1 ELSE 0 END  ),0) as 'FullTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_half_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'HalfTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_pass_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'PassTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+
+IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Expenses',
+
+IFNULL((CASE WHEN td.td_ticket_code='PNTY' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Penalty',
+
+
+
+
+
+CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE 
+
+	CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+
+		CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 
+
+
+
+	1 ELSE 0 END
+
+	END
+
+END as 'IsAgentTicket',
+
+
+
+
+
+
+
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+
+
+
+FROM
+
+newver_ticketdetails td
+
+ where 1=1
+
+AND td.ClientID = ClientID_in 
+
+AND td.td_ticket_code IN 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) And 
+
+
+
+ td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE ddlWyBill_in  END) And 
+
+
+
+ 
+
+		
+
+
+
+
+
+ 
+
+
+
+  
+
+   
+
+
+
+
+
+ td.bi_waybill IN ( 
+
+		  (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in  
+
+AND wbp2.MachineNo = (CASE WHEN ddlMachineNo_in='ALL' THEN wbp2.MachineNo ELSE ddlMachineNo_in END ) ) 
+
+	  
+
+) 
+
+ And 
+
+   td.bi_waybill IN  ( CASE WHEN ddlConductor_in ='ALL' THEN td.bi_waybill ELSE 		
+
+ (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in  AND wbp2.wbp_condrdetails =(CASE WHEN ddlConductor_in='ALL' THEN wbp2.wbp_condrdetails ELSE ddlConductor_in END ) )
+
+    END)  
+
+
+
+order by 
+
+
+
+
+
+td.td_ticket_num DESC
+
+limit 500;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `RecentTicketsView`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `ddlConductor_in` VARCHAR(50))
+    NO SQL
+BEGIN
+SELECT 
+td.id,
+td.Mc_Serial,
+td.wytd_waybill_no,
+td.td_ticket_date,
+td.td_ticket_time,
+td.td_ticket_num,
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),'Not Defined') as 'RouteName',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),'Not Defined') as 'FromStage',
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) From newver_rpstagedetails rps2 where rps2.rpsd_routeno =td.td_route_no AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),'Not Defined') as 'TOStage',
+td.td_ticket_code,
+td.td_con_case_code,
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+
+
+
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+
+
+(CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 1 ELSE 0 END END END) as 'IsAgentTicket',
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+FROM newver_ticketdetails td 
+where td.ClientID = ClientID_in 
+AND td.td_ticket_code IN (select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) 
+AND td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE ddlWyBill_in  END) 
+
+
+
+AND td.bi_waybill IN 
+ (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in AND 
+  wbp2.wbp_condrdetails =(CASE WHEN ddlConductor_in ='ALL' THEN wbp2.wbp_condrdetails ELSE ddlConductor_in END ) 
+  AND wbp2.MachineNo = (CASE WHEN ddlMachineNo_in='ALL' THEN wbp2.MachineNo ELSE ddlMachineNo_in END )
+  ) 
+order by td.id DESC 
+limit 200;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `RecentTicketsViewOld`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `ddlConductor_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+
+
+
+
+SELECT 
+
+td.Mc_Serial,
+
+td.wytd_waybill_no,
+
+td.td_ticket_date,
+
+td.td_ticket_time,
+
+td.td_ticket_num,
+
+(select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no) as RouteName,
+
+
+
+
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from And rps.ClientID=td.ClientID),'Not Defined') as FromStage,
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=td.ClientID),'Not Defined') as TOStage,
+
+
+
+td.td_ticket_code,
+
+
+
+td.td_con_case_code,
+
+
+
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+
+
+IFNULL(td.td_full * td.td_full_ticket, 0) as 'FullTicketFare',
+
+
+
+IFNULL(td.td_half * td.td_half_ticket, 0) as 'HalfTicketFare',
+
+
+
+IFNULL(td.td_luggage, 0) as 'LuggageFare',
+
+
+
+IFNULL(td.td_pass, 0) as 'PassFare',
+
+
+
+IFNULL(td.td_full_ticket, 0)+IFNULL(td.td_half_ticket, 0) as 'PaxCount',
+
+
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+
+
+
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+
+
+
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_full_ticket>0 THEN 1 ELSE 0 END  ),0) as 'FullTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_half_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'HalfTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_pass_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'PassTicketCount',
+
+
+
+IFNULL((CASE WHEN td.td_con_case_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+
+IFNULL((CASE WHEN td.td_con_case_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Expenses',
+
+IFNULL((CASE WHEN td.td_con_case_code='PNTY' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Penalty',
+
+
+
+
+
+CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE 
+
+	CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+
+		CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 
+
+	1 ELSE 0 END
+
+	END
+
+END as 'IsAgentTicket',
+
+
+
+
+
+
+
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+
+
+
+FROM
+
+newver_ticketdetails td
+
+ where 1=1
+
+AND td.ClientID = ClientID_in 
+
+AND td.td_ticket_code IN 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) And 
+
+
+
+ td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE ddlWyBill_in   END) And 
+
+
+
+ td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE 
+
+		(SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID=ClientID_in AND wbp2.MachineNo =ddlMachineNo_in )
+
+	END) 
+
+And 
+
+ td.wytd_waybill_no IN ( CASE WHEN ddlConductor_in ='ALL' THEN td.wytd_waybill_no ELSE 		
+
+(SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID=ClientID_in AND wbp2.wbp_condrdetails =ddlConductor_in )
+
+   END)  
+
+
+
+
+
+
+
+order by td.id desc 
+
+limit 50;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `RechargeReport`(IN `ClientID_in` VARCHAR(100), IN `Centre_In` VARCHAR(100), IN `FromDt_in` VARCHAR(100), IN `ToDt_in` VARCHAR(100))
+    NO SQL
+SELECT cct_issuedt as 'Date',cct_issuetm as 'Time',McSrNo as 'McSerial',cct_passno as 'CardNo',cct_psngr_name as 'PaxName',cct_coupen_denomination as 'CoupValue', cct_noof_coupens as 'CoupCount',cct_total_amt as 'CardBal',cct_frm_stncode as 'From', cct_to_stncode as 'To',cct_username as 'IssuedBy',cct_prev_amt as 'PrevBalance',acpt_amt as 'AcptAmt',cct_expdt as 'ExpDate',cct_status as 'Method',cct_prev_amt-(cct_total_amt-acpt_amt) as 'Saving',typecode as 'CardType',CentID as 'Centre' FROM `cct_multi_card_details` WHERE ClientID = ClientID_in 
+AND (DATE(cct_issuedt) BETWEEN FromDt_in AND ToDt_in )
+AND (CASE when Centre_In = 'ALL' THEN TRUE ELSE CentID = Centre_In END)$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `ReportGetPass`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+select td.id,td.wytd_waybill_no,td.td_ticket_num,
+
+
+
+
+
+
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from And rps.ClientID=td.ClientID),'Not Defined') as fromstg,
+
+
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=td.ClientID),'Not Defined') as tostg,
+
+
+
+
+
+td.td_stg_from,
+
+td.td_stg_to,td.td_ticket_fare as 'Amount',
+
+
+
+IFNULL(td.td_full_ticket, 0) + IFNULL(td.td_half_ticket, 0) + IFNULL(td.td_pass_ticket, 0) as 'Pax',td.td_ticket_code from newver_ticketdetails td 
+
+where td.ClientID=ClientID_in  And  td.td_ticket_code NOT IN('DTLS') And  td.wytd_waybill_no=WayBill_in ORDER BY td.td_ticket_num ASC;
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `ReportGetPassToPara`(IN `ClientID_In` VARCHAR(25), IN `MachineNo_in` VARCHAR(25), IN `ddlConductor_in` VARCHAR(25), IN `FromDate_in` DATETIME, IN `ToDate_in` DATETIME)
+    NO SQL
+    DETERMINISTIC
+BEGIN
+
+	
+
+Select  
+
+distinct wbp.wbp_waybillno
+
+from  
+
+newver_waybillprogramming wbp 
+
+
+
+Where wbp.ClientID=ClientID_In 
+
+ And  wbp.MachineNo IN ( CASE WHEN MachineNo_in ='ALL' THEN  wbp.MachineNo ELSE MachineNo_in  END)
+
+And wbp.wbp_condrdetails IN ( CASE WHEN ddlConductor_in ='ALL' THEN wbp.wbp_condrdetails ELSE ddlConductor_in  END) AND  
+
+wbp.bi_date BETWEEN FromDate_in And ToDate_in 
+
+ORDER BY 
+
+wbp.wbp_waybillno desc;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `ReportHeadWayBill`(IN `ClientID_In` VARCHAR(25), IN `WayBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+
+
+select wbp.wbp_vehicalno,wbp.status as status
+
+,wbp.wbp_waybillno
+
+,wbp.MachineNo
+
+,(select min(td1.bi_ticket_datetime) from newver_ticketdetails td1 where td1.ClientID = wbp.ClientID and td1.wytd_waybill_no = wbp.wbp_waybillno) as FirstTicket  
+
+,(select max(td1.bi_ticket_datetime) from newver_ticketdetails td1 where td1.ClientID = wbp.ClientID and td1.wytd_waybill_no = wbp.wbp_waybillno) as LastTicket  
+
+,IFNULL((select concat(cd.cd_condrdetails_code ,'-',cd.cd_condrdetails) from newver_conductordetails cd where cd.ClientID = wbp.ClientID and cd.cd_condrdetails_code = wbp.wbp_condrdetails),'Not Defined') as conductor
+
+
+
+,
+
+
+
+IFNULL((select max(concat(dr.drv_code ,'-',dr.`name`)) from newver_drivernames dr where
+
+ dr.ClientID = wbp.ClientID and  CAST(dr.drv_code as unsigned) = cast(wbp.wbp_driver1details as unsigned) ),'Not Defined') as Driver
+
+ 
+
+
+
+,(select sum(td1.CollectionRevenue) from newver_ticketdetails td1 where td1.ClientID = wbp.ClientID and td1.wytd_waybill_no = wbp.wbp_waybillno) as Collection  
+
+,(select sum(td1.Expenses) from newver_ticketdetails td1 where td1.ClientID = wbp.ClientID and td1.wytd_waybill_no = wbp.wbp_waybillno) as Expenses  
+
+,(select sum(td1.td_pass) from newver_ticketdetails td1 where td1.ClientID = wbp.ClientID and td1.wytd_waybill_no = wbp.wbp_waybillno) as RFIDUsage  
+
+
+
+from  newver_waybillprogramming wbp 
+
+
+
+Where wbp.ClientID=ClientID_In 
+
+
+
+And wbp.wbp_waybillno =WayBill_in;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `ReportWayBillSummary`(IN `ClientID_in` VARCHAR(50), IN `WayBill_in` VARCHAR(25), IN `Conductor_in` VARCHAR(250), IN `Machine_in` VARCHAR(26))
+    NO SQL
+BEGIN
+
+	
+
+
+
+	select wbp.wbp_waybillno as 'WaybillNo',wbp.CreatedDT 'WBDate',wbp.`status`,wbp.wbp_condrdetails as 'ConductorCode',
+
+	(select max(cd.cd_condrdetails) from newver_conductordetails cd where cd.cd_condrdetails_code = wbp.wbp_condrdetails And cd.ClientID=ClientID_in) as 'Conductor',
+
+	(SELECT IFNULL(sum(td.td_full), 0) + IFNULL(sum(td.td_half), 0) + IFNULL(sum(td.td_luggage), 0) + IFNULL(sum(td.td_pass), 0) 
+
+	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  And td.ClientID=ClientID_in) as 'Amount',(SELECT IFNULL(sum(td.td_full_ticket), 0) +
+
+	 IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'PaxCount',
+
+	(SELECT IFNULL(sum(td.td_luggage_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in) as
+
+	 'LuggageCount',(SELECT IFNULL(sum(td.td_pass_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) 
+
+	as 'PassCount',CONCAT(IFNULL(wbp.wbp_driver1details, ''), '-', IFNULL((select dn.`name` from newver_drivernames dn where dn.drv_code = wbp.wbp_driver1details And dn.ClientID=ClientID_in),
+
+	 '')) as 'Driver',wbp.MachineNo as 'MachineNo',wbp.wbp_vehicalno as 'Vehicle',CASE WHEN wbp.WBCloseCode = -1 THEN 0 ELSE wbp.WBCloseCode END as 'WBClosingCode',
+
+	wbp.WBCloserRemar 'ClosingRemark' from newver_waybillprogramming wbp where wbp.ClientID =ClientID_in 
+
+
+
+And wbp.wbp_waybillno IN ( CASE WHEN WayBill_in ='ALL' THEN wbp.wbp_waybillno ELSE WayBill_in END )
+
+
+
+And wbp.wbp_condrdetails IN ( CASE WHEN Conductor_in ='ALL' THEN wbp.wbp_condrdetails ELSE Conductor_in  END )
+
+
+
+And wbp.MachineNo IN ( CASE WHEN Machine_in ='ALL' THEN wbp.MachineNo ELSE Machine_in  END )
+
+
+
+
+
+
+
+;
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `ReportMIS`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50), IN `FromDate_in` DATETIME, IN `ToDate_in` DATETIME)
+    NO SQL
+BEGIN
+
+
+
+SELECT 
+
+td.td_ticket_date as Date,
+
+td.Mc_Serial as MachineNo,
+
+td.wytd_waybill_no as 'WaybillNo',
+
+
+
+IFNULL((select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID),'Not Specified')
+
+ as vehicalno,
+
+ 
+
+ IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+
+where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),td.td_route_no),'Not Specified') as
+
+ Route,
+
+ SUM(IFNULL(td.td_ticket_fare+ IFNULL(td.td_pass, 0) , 0)) as 'TotalSaleA',
+
+ SUM(IFNULL(td.td_pass, 0)) as 'TotalRFIDuseB',
+
+ 
+
+ SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'totalexpressC',
+
+ SUM(IFNULL(td.td_ticket_fare, 0))-SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'TotalCollection',
+
+ 
+
+(IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = td.ClientID and  rps.rpsd_triangleno=1 
+
+AND rps.rpsd_routeno =td.td_route_no),0) * IFNULL( max(td.td_trip_no),0)) as TotalKms,
+
+
+
+23 as EPKM,
+
+
+
+
+
+
+
+IFNULL( max(td.td_trip_no),0)  as 'NoOfTrips',
+
+0 as 'Avgearning',
+
+0 AS 'Paxtrvals',
+
+IFNULL((select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID),'Not Specified') as conductorName,
+
+
+
+IFNULL((select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID),'Not Specified') as DriverName,
+
+
+
+SUM(IFNULL((CASE WHEN td.td_full_ticket>0 THEN 1 ELSE 0 END  ),0)) + sum(IFNULL((CASE WHEN td.td_half_ticket>0 THEN 1 ELSE 0 END  ),0))
+
++SUM(IFNULL((CASE WHEN td.td_pass_ticket>0 THEN 1 ELSE 0 END  ),0))  as 'TotalTicketIssues'
+
+
+
+
+
+FROM
+
+newver_ticketdetails td
+
+ where 1=1
+
+AND td.ClientID = ClientID_in  AND td.bi_ticket_datetime  
+
+
+
+BETWEEN FromDate_in And ToDate_in
+
+
+
+	  
+
+AND td.td_ticket_code IN 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) And 
+
+
+
+ td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE ddlWyBill_in  END)
+
+
+
+
+
+And 
+
+
+
+ td.bi_waybill IN ( 
+
+		  (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in  
+
+AND wbp2.MachineNo = (CASE WHEN ddlMachineNo_in='ALL' THEN wbp2.MachineNo ELSE ddlMachineNo_in END ) ) 
+
+	  
+
+)
+
+
+
+
+
+
+
+GROUP BY td.ClientID,td.td_ticket_date,td.Mc_Serial,td.wytd_waybill_no,td.td_route_no
+
+
+
+order by 
+
+td.td_ticket_date,td.wytd_waybill_no
+
+;
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_Insp`(IN `ClientID_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT 
+td.ClientId as 'CID',
+DATE(bi_ticket_datetime)  as 'Date',
+Mc_Serial as 'MachineNo',
+bi_waybill as 'WaybillNo',
+wp.wbp_vehicalno as 'VehicleNo',
+td_ticket_time as 'Time',
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) 
+from newver_routeprogramming rp where rp.ClientID=td.ClientID 
+And  rp.rp_routeno= td.td_route_no),td.td_route_no) as 'Route',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no 
+AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),td.td_stg_from) as 'FromStg',
+td_trip_no as 'Trip',
+td_con_case_code as 'Insp',
+td_doc_rec_no as 'Type' 
+FROM `newver_ticketdetails` as td
+LEFT JOIN `newver_waybillprogramming` wp
+ON td.bi_waybill = wp.wbp_waybillno AND td.ClientId = wp.ClientID
+
+where td_ticket_code = 'CASE'
+AND DATE(bi_ticket_datetime) BETWEEN FromDt_in AND ToDt_in
+AND td.ClientId= ClientID_in 
+ORDER BY Date,WaybillNo,Trip ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_InspPerform`(IN `InspCode_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT 
+td.ClientId as 'CID',
+DATE(bi_ticket_datetime)  as 'Date',
+td.ClientId as 'Operator',
+Mc_Serial as 'MachineNo',
+bi_waybill as 'WaybillNo',
+wp.wbp_vehicalno as 'VehicleNo',
+td_ticket_time as 'Time',
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) 
+from newver_routeprogramming rp where rp.ClientID=td.ClientID 
+And  rp.rp_routeno= td.td_route_no),td.td_route_no) as 'Route',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no 
+AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),td.td_stg_from) as 'FromStg',
+td_trip_no as 'Trip',
+td_con_case_code as 'Insp',
+td_doc_rec_no as 'Type' 
+FROM `newver_ticketdetails` as td
+LEFT JOIN `newver_waybillprogramming` wp
+ON td.bi_waybill = wp.wbp_waybillno AND td.ClientId = wp.ClientID
+
+where td_ticket_code = 'CASE'
+AND DATE(bi_ticket_datetime) BETWEEN FromDt_in AND ToDt_in
+AND td_con_case_code like InspCode_in
+ORDER BY Date,Time,WaybillNo,Trip ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_PassTrack`(IN `PassNo_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25))
+    NO SQL
+BEGIN
+Select 
+A.id,
+A.Clientid as 'Operator',
+A.bi_waybill as 'WaybillNo',
+A.td_ticket_num as 'TicketNo',
+A.bi_ticket_datetime as 'DateTime',
+A.td_route_no as 'RouteN',
+
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=A.ClientID And  rp.rp_routeno= A.td_route_no),A.td_route_no),'Not Specified') as 'Route',
+
+A.td_stg_from as 'FStg',
+A.td_stg_to as 'TStg',
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID=A.ClientID),'Not Defined') as 'FromStg',
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =A.td_route_no AND rps.rpsd_stgno = A.td_stg_to And rps.ClientID=A.ClientID),'Not Defined') as 'ToStg',
+
+A.td_ticket_fare as 'Amount', 
+A.td_con_case_code as 'PassNo', 
+SUBSTRING(B.td_con_case_code,1,4) as 'Balance',
+SUBSTRING(B.td_con_case_code,6,6) as 'Expiry',
+A.td_doc_rec_no as 'Type'
+From newver_ticketdetails A
+LEFT JOIN newver_ticketdetails B
+ON A.bi_waybill = B.bi_waybill and A.td_ticket_num = B.td_ticket_num and A.Clientid = B.Clientid
+WHERE B.td_ticket_code = 'DTLS'
+AND A.td_ticket_code ='PASS'
+AND (A.td_doc_rec_no = '03' OR A.td_doc_rec_no = '04')
+AND A.td_con_case_code = PassNo_in
+AND A.bi_ticket_datetime BETWEEN concat(FromDt_in,' 00:00:00') AND concat(ToDt_in,' 00:00:00')
+ORDER by A.bi_ticket_datetime;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_RFID_Usage`(IN `ClientID_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT * from 
+(
+SELECT wbp.wbp_waybillno as 'WyBill',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'Conductor',
+IFNULL(wbp.wbp_vehicalno,'Not Available') as 'VehicleNo' 
+from `newver_waybillprogramming` wbp
+WHERE wbp.ClientID= ClientID_in) as t1
+RIGHT JOIN 
+(SELECT 
+DATE(bi_ticket_datetime)  as 'Date',
+Mc_Serial as 'MachineNo',
+bi_waybill as 'WaybillNo',
+
+TIME(bi_ticket_datetime)  as 'Time', 
+td_ticket_num as 'TicketNo',
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) 
+from newver_routeprogramming rp where rp.ClientID=td.ClientID 
+And  rp.rp_routeno= td.td_route_no),td.td_route_no) as 'Route',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no 
+AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),td.td_stg_from) as 'FromStg',
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps2 where rps2.rpsd_routeno =td.td_route_no 
+AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),td.td_stg_to) as 'ToStg',
+td_trip_no as 'Trip',
+td_con_case_code as 'CardNo',
+td_doc_rec_no as 'Type',
+td_ticket_fare as 'UsageAmt' 
+FROM `newver_ticketdetails` as td
+where td_ticket_code = 'PASS' AND (CAST(td_doc_rec_no as unsigned) = '4' 
+OR CAST(td_doc_rec_no as unsigned) = '3' ) 
+AND DATE(bi_ticket_datetime) BETWEEN FromDt_in AND ToDt_in
+AND ClientID= ClientID_in ) as t2
+ON t1.WyBill = t2.WaybillNo 
+ORDER BY Date,WaybillNo,Trip,Time ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_StgWise`(IN `ClientID_In` VARCHAR(16), IN `WayBill_in` VARCHAR(16))
+    NO SQL
+BEGIN
+SELECT 
+rslt.CL as 'wClient',
+rslt.MC as 'MachineNo',
+rslt.wdt as 'wbp_date',
+rslt.veh as 'vehicalno',
+rslt.WBL as 'WaybillNo',
+rslt.ConductoreName  as 'ConductorCode',
+rslt.status as 'status',
+rslt.STG as 'Stage',
+rslt.STGNM  as 'STGNAME',
+rslt.ROUTE as 'RUT',
+rslt.RUTNM as 'ROUTENAME',
+rslt.TRIP as 'TRP',
+SUM(rslt.FULL)  as 'FUL',
+SUM(rslt.HLF) as 'HALF',
+SUM(rslt.LUG) as 'LUGG',
+SUM(rslt.PAS) as 'PASS',
+SUM(rslt.CASHAMT) as 'CSHAMT',
+SUM(rslt.RFIDAMT) as 'RFAMT'
+FROM
+(
+SELECT 
+wp.wbp_date as 'wdt',
+wp.wbp_vehicalno as 'Veh',
+
+IFNULL(cd.cd_condrdetails,wp.wbp_condrdetails) as 'ConductoreName',    
+wp.status as 'status',
+td.ClientID as 'CL',
+Mc_serial as 'MC',
+td_ticket_code as 'Code',
+td_stg_from as 'STG',
+IFNULL(CONCAT(rpsd.rpsd_stgcode,'(',rpsd.rpsd_stgnamee,')'),td_stg_from) as 'STGNM',
+bi_waybill as 'WBL',
+td_trip_no as 'TRIP',
+td_route_no as 'ROUTE',
+IFNULL(CONCAT(td_route_no,' ',rp.rp_startstg,'-',rp.rp_endstg),td_route_no) as 'RUTNM',
+td_full_ticket as 'FULL',
+td_half_ticket as 'HLF',
+td_luggage_ticket as 'LUG',
+td_pass_ticket as 'PAS',
+(CASE WHEN 
+NOT ((CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4) AND `td_ticket_code`='PASS') 
+THEN `td_ticket_fare` ELSE 0 END ) AS 'CASHAMT',
+(CASE WHEN 
+(CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4)   AND `td_ticket_code`='PASS'
+THEN `td_ticket_fare` ELSE 0  END) AS 'RFIDAMT' 
+FROM `newver_ticketdetails` td
+LEFT JOIN newver_waybillprogramming wp
+ON td.clientID = wp.clientID AND td.bi_waybill = wp.wbp_waybillno
+LEFT JOIN newver_routeprogramming rp
+ON td.clientID = rp.clientID AND td.td_route_no = rp.rp_routeno
+LEFT JOIN newver_rpstagedetails rpsd
+ON td.clientID = rpsd.clientID AND td.td_stg_from = rpsd.rpsd_stgno AND td.td_route_no=rpsd.rpsd_routeno  AND  rpsd.rpsd_triangleno = 1
+LEFT JOIN newver_conductordetails cd
+ON td.ClientID = cd.ClientID AND wp.wbp_condrdetails = cd.cd_condrdetails_code
+WHERE td.clientID = ClientID_In AND td.bi_waybill = WayBill_in
+AND td.td_ticket_code !='DTLS' AND td.td_ticket_code !='EXPN'
+AND td.td_ticket_code !='RCVT'
+) rslt
+GROUP BY TRP,Stage
+ORDER BY TRP,Stage;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_StgWise_Orig`(IN `ClientID_In` VARCHAR(16), IN `WayBill_in` VARCHAR(16))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT ClientID as 'wClient',
+wbp_waybillno as 'WaybillNo',
+wbp_vehicalno as 'vehicalno',
+wbp_date  as 'wbp_date',
+wbp_condrdetails as 'ConductorCode',
+status as 'status' 
+FROM `newver_waybillprogramming`  
+WHERE ClientID = ClientID_In AND wbp_waybillno = WayBill_in )as  wbp
+LEFT JOIN
+(SELECT 
+tmp.MC as 'MachineNo',
+tmp.WBL as 'WaybillNo',
+tmp.STG as 'Stage',
+IFNULL(IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =tmp.ROUTE  AND rps.rpsd_stgno = tmp.STG And rps.ClientID=ClientID_In),tmp.STG),'Not Defined') as 'STGNAME',
+tmp.TRIP as 'TRP',
+tmp.ROUTE as 'RUT',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=ClientID_In And  rp.rp_routeno= tmp.ROUTE ),tmp.ROUTE ),'Not Defined') as 'ROUTENAME',
+SUM(tmp.FULL) as 'FUL',
+SUM(tmp.HLF) as 'HALF',
+SUM(tmp.LUG) as 'LUGG',
+SUM(tmp.PAS) as 'PASS',
+SUM(tmp.CASHAMT) as 'CSHAMT',
+SUM(tmp.RFIDAMT) as 'RFAMT'
+FROM
+(SELECT 
+Mc_serial as 'MC',
+bi_waybill as 'WBL',
+td_trip_no as 'TRIP',
+td_route_no as 'ROUTE',
+td_stg_from as 'STG',
+td_full_ticket as 'FULL',
+td_half_ticket as 'HLF',
+td_luggage_ticket as 'LUG',
+td_pass_ticket as 'PAS',
+(CASE WHEN 
+NOT ((CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4) AND `td_ticket_code`='PASS') 
+THEN `td_ticket_fare` ELSE 0 END ) AS 'CASHAMT',
+(CASE WHEN 
+(CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4)   AND `td_ticket_code`='PASS'
+THEN `td_ticket_fare` ELSE 0  END) AS 'RFIDAMT' 
+FROM `newver_ticketdetails` 
+WHERE `bi_waybill` = WayBill_in AND ClientID = ClientID_In  
+AND (`td_ticket_code` != 'DTLS') AND (`td_ticket_code` != 'EXPN') AND (`td_ticket_code` !='RCVT')
+
+) tmp
+GROUP BY Stage,TRP
+
+) stgrep
+ON wbp.WaybillNo = stgrep.WaybillNo
+ORDER BY stgrep.Stage; 
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_Trip_sheet`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(16))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+wbp.wbp_vehicalno as 'vehicalno',
+wbp.wbp_date  as 'wbp_date',
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'ConductorCode',
+wbp.status as 'status' 
+FROM `newver_waybillprogramming`  wbp
+WHERE ClientID = ClientID_in AND wbp_waybillno = WayBill_in )as  wbp1
+LEFT JOIN
+(SELECT 
+TS_WayBill as 'WaybillNo',
+TS_McSerial as 'MachineNo',
+TS_StartDateTime as 'TickDate',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=TS_ClientID And  rp.rp_routeno= TS_RouteNo),TS_RouteNo),'Not Specified') as 'Route',
+IFNULL((SELECT max(cast(rpsd_km as unsigned)) From newver_rpstagedetails rps where rps.ClientID = TS_ClientID and  rps.rpsd_triangleno=1 AND rps.rpsd_routeno = TS_RouteNo),0) as 'TotalKms',
+TS_TripNo as 'TripNo',
+TS_TripStat as 'UpDn',
+TS_StartTickNo as 'TickStart',
+TS_EndTickNo as 'TickEnd', 
+IFNULL((SUM(TS_Inflow) - SUM(TS_Outflow)),0)  as 'NetCash',
+IFNULL((SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04)),0) as 'TotalFare',
+SUM(TS_AmtRFIDUse) as 'TotalRFIDuse3',
+SUM(TS_AmtRFIDUse04) as 'TotalRFIDuse4',
+IFNULL(SUM(TS_Outflow),0) as 'Expenses',
+IFNULL(SUM(TS_ExpnCnt),0) as 'ExpCnt',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+SUM(TS_TotTckts) as 'TotalTicketIssued',
+IFNULL(SUM(TS_FullPax),0) as 'FullPaxCount',
+IFNULL(SUM(TS_AmtFull),0) as 'FullTicketFare',
+IFNULL(SUM(TS_HlfPax),0) as 'HalfPaxCount',
+IFNULL(SUM(TS_AmtHlf),0)as 'HalfTicketFare',
+IFNULL(SUM(TS_LugCnt),0) as 'LuggageCount',
+IFNULL(SUM(TS_AmtLug),0) as 'LuggageFare',
+IFNULL((SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)),0)  as 'ConcessionPaxCount',
+IFNULL(SUM(TS_AmtConc),0) as 'ConcessionFare',
+IFNULL(SUM(TS_PnltyCnt),0) as 'PntyCnt',
+IFNULL(SUM(TS_AmtPnlty),0)  as 'Penalty',
+IFNULL(SUM(TS_PassCnt),0) as 'PassCount',
+IFNULL(SUM(TS_RFIDCardUseCnt),0) as 'RFIDCardCnt',
+IFNULL((SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)),0) as 'RfidPaxCnt',
+IFNULL(SUM(TS_RFIDRchgCnt),0) as 'RFIDRchrgCnt',
+IFNULL(SUM(TS_AmtRFIDRecharge),0) as 'RFIDRchrgAmt'
+FROM `newver_trip_sheet`
+WHERE TS_ClientID = ClientID_in AND TS_WayBill = WayBill_in
+GROUP BY MachineNo,TripNo,TS_StartDateTime,TickStart,TickEnd,TS_TripStat,Route,TotalKms
+) as ts
+
+ON wbp1.WaybillNo = ts.WaybillNo
+ORDER BY wbp_date,TripNo,TickDate;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_WayBill_Exp`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT CAST(td_doc_rec_no as UNSIGNED) as 'TYPE',count(*) as 'CNT',SUM(td_ticket_fare)  as 'AMT' FROM `newver_ticketdetails` WHERE ClientID = ClientID_in AND bi_waybill =WayBill_in AND td_ticket_code = 'EXPN'
+GROUP BY Type
+ORDER BY Type;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_WayBill`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+wbp.wbp_vehicalno as 'vehicalno',
+wbp.wbp_date  as 'wbp_date',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'ConductorCode',
+status as 'status' 
+FROM `newver_waybillprogramming`  wbp
+WHERE wbp.ClientID = ClientID_in AND wbp.wbp_waybillno = WayBill_in )as  wbp1
+LEFT JOIN
+(SELECT 
+TS_WayBill as 'WaybillNo',
+TS_McSerial as 'MachineNo',
+max(TS_TripNo) as 'Trips',
+-- uday TS_StartTickNo as 'TickStart',
+IFNULL((SUM(TS_Inflow) - SUM(TS_Outflow)),0)  as 'NetCash',
+IFNULL((SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04)),0) as 'TotalFare',
+SUM(TS_AmtRFIDUse) as 'TotalRFID3',
+ SUM(TS_AmtRFIDUse04) as 'TotalRFID4',
+IFNULL(SUM(TS_Outflow),0) as 'Expenses',
+IFNULL(SUM(TS_ExpnCnt),0) as 'ExpCnt',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+IFNULL(SUM(TS_TotTckts),0) as 'TotalTicketIssued',
+IFNULL(SUM(TS_FullPax),0) as 'FullPaxCount',
+IFNULL(SUM(TS_AmtFull),0) as 'FullTicketFare',
+IFNULL(SUM(TS_HlfPax),0) as 'HalfPaxCount',
+IFNULL(SUM(TS_AmtHlf),0)as 'HalfTicketFare',
+IFNULL(SUM(TS_LugCnt),0) as 'LuggageCount',
+IFNULL(SUM(TS_AmtLug),0) as 'LuggageFare',
+IFNULL((SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)),0)  as 'ConcessionPaxCount',
+IFNULL(SUM(TS_AmtConc),0) as 'ConcessionFare',
+IFNULL(SUM(TS_PnltyCnt),0) as 'PntyCnt',
+IFNULL(SUM(TS_AmtPnlty),0)  as 'Penalty',
+IFNULL(SUM(TS_PassCnt),0) as 'PassCount',
+IFNULL(SUM(TS_RFIDCardUseCnt),0) as 'RFIDCardCnt',
+IFNULL((SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)),0) as 'RfidPaxCnt',
+IFNULL(SUM(TS_RFIDRchgCnt),0) as 'RFIDRchrgCnt',
+IFNULL(SUM(TS_AmtRFIDRecharge),0) as 'RFIDRchrgAmt'
+FROM `newver_trip_sheet`
+WHERE TS_ClientID = ClientID_in AND TS_WayBill = WayBill_in
+Group BY  TS_McSerial
+) as ts
+ON wbp1.WaybillNo = ts.WaybillNo;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `SearchTicketView`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(50), IN `ddlTicketType_in` VARCHAR(50), IN `Route_in` VARCHAR(100))
+    NO SQL
+BEGIN
+
+
+
+SELECT `id` , `ClientID`, `wytd_waybill_no`, `td_trip_no`, `td_route_no`,IFNULL((select Concat(rp.rp_routeno,':',rp.rp_startstg,'-',rp.rp_endstg) 
+
+ From newver_routeprogramming rp where rp_routeno=td.td_route_no And rp.ClientID=ClientID_in),'Not Defined') as routeName ,`td_ticket_code`, 
+
+`td_ticket_num`,IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1
+
+ AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from AND rps.ClientID=ClientID_in),'Not Defined') as FromStage,IFNULL((select  CONCAT(rps.rpsd_stgcode,' 
+
+(', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps 
+
+where rps.rpsd_triangleno=1 AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=@ClientID_in),'Not Defined') as TOStage,`td_stg_from`, `td_stg_to`, `td_full_ticket`, `td_half_ticket`, `td_luggage_ticket`, `td_pass_ticket`, `td_ticket_fare`, `td_ticket_date`, `td_ticket_time`, `td_doc_rec_no`, `td_con_case_code`, `td_state_code`, `td_half`, `td_full`, `td_bustype`, `Mc_Serial`, `Div_Name`, `Dep_Name`  FROM newver_ticketdetails  td  Where td.ClientID=ClientID_in And  td.wytd_waybill_no=WayBill_in  And td.td_ticket_code=ddlTicketType_in And td.td_route_no=Route_in;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+  
+
+ 
+
+
+
+ 
+
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+ 
+
+
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `SearchWayBillSummary`(IN `ClientID_in` VARCHAR(60), IN `Machine_in` VARCHAR(60))
+    NO SQL
+BEGIN
+
+
+
+
+
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
+
+select 
+
+wbp.wbp_waybillno as 'WaybillNo',
+
+wbp.CreatedDT 'WBDate',
+
+wbp.`status`,
+
+wbp.wbp_condrdetails as 'ConductorCode',
+
+
+
+(SELECT count(1) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And wbp.ClientID=ClientID_in) 
+
+as 'TicketCount',
+
+
+
+(select cd.cd_condrdetails from newver_conductordetails cd where cd.cd_condrdetails_code = wbp.wbp_condrdetails And cd.ClientID=ClientID_in ) as 'Conductor',
+
+(SELECT IFNULL(sum(td.td_full),0)+IFNULL(sum(td.td_half),0)+IFNULL(sum(td.td_luggage),0)+IFNULL(sum(td.td_pass),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  And td.ClientID=ClientID_in ) as 'Amount',
+
+(SELECT IFNULL(sum(td.td_full_ticket),0)+IFNULL(sum(td.td_half_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'PaxCount',
+
+(SELECT IFNULL(sum(td.td_luggage_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'LuggageCount',
+
+(SELECT IFNULL(sum(td.td_pass_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'PassCount',
+
+CONCAT(IFNULL(wbp.wbp_driver1details,''),'-', IFNULL((select dn.`name` from newver_drivernames dn where 
+
+dn.drv_code = wbp.wbp_driver1details And dn.ClientID=ClientID_in),'')) as 'Driver',wbp.MachineNo as 'MachineNo',wbp.wbp_vehicalno as 'Vehicle',CASE WHEN wbp.WBCloseCode=-1 
+
+THEN 0 
+
+ELSE wbp.WBCloseCode 
+
+END as 'WBClosingCode',
+
+wbp.WBCloserRemar 'ClosingRemark' 
+
+from newver_waybillprogramming wbp 
+
+where wbp.ClientID = ClientID_in And wbp.MachineNo=Machine_in 
+
+order by wbp.id 
+
+desc limit 1000;
+
+
+
+COMMIT;
+
+
+
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+ 
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Selected_Machine_Ticket_Export`(IN `ClientID_in` VARCHAR(50), IN `ddlMachineNo_in` VARCHAR(50))
+    NO SQL
+BEGIN
+SELECT 
+td.id,
+td.Mc_Serial,
+td.wytd_waybill_no,
+td.td_ticket_date,
+td.td_ticket_time,
+td.td_ticket_num,
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),'Not Defined') as RouteName,
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),'Not Defined') as FromStage,
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) From newver_rpstagedetails rps2 where rps2.rpsd_routeno =td.td_route_no AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),'Not Defined') as TOStage,
+td.td_ticket_code,
+td.td_con_case_code,
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+
+
+
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+
+
+(CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 1 ELSE 0 END END END) as 'IsAgentTicket',
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+FROM newver_ticketdetails td 
+where td.ClientID = ClientID_in 
+AND DATE(bi_ticket_datetime) = CURRENT_DATE 
+AND td.td_ticket_code IN (select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) 
+AND td.wytd_waybill_no IN (td.wytd_waybill_no ) 
+
+
+
+AND td.bi_waybill IN 
+ (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in
+ 
+  AND wbp2.MachineNo = ddlMachineNo_in ) 
+order by td.td_ticket_num ASC 
+limit 10000;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Selected_Waybill_Ticket_Export`(IN `ClientID_in` VARCHAR(50), IN `ddlWyBill_in` VARCHAR(50))
+    NO SQL
+BEGIN
+SELECT 
+td.id,
+td.Mc_Serial,
+td.wytd_waybill_no,
+td.td_ticket_date,
+td.td_ticket_time,
+td.td_ticket_num,
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),'Not Defined') as RouteName,
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),'Not Defined') as FromStage,
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) From newver_rpstagedetails rps2 where rps2.rpsd_routeno =td.td_route_no AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),'Not Defined') as TOStage,
+td.td_ticket_code,
+td.td_con_case_code,
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+
+
+
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+
+
+(CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 1 ELSE 0 END END END) as 'IsAgentTicket',
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+FROM newver_ticketdetails td 
+where td.ClientID = ClientID_in 
+AND td.td_ticket_code IN (select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) 
+AND td.wytd_waybill_no IN ( CASE WHEN ddlWyBill_in ='ALL' THEN td.wytd_waybill_no ELSE ddlWyBill_in  END) 
+
+
+
+AND td.bi_waybill IN 
+ (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= ClientID_in 
+
+
+  ) 
+order by td.td_ticket_num asc
+LIMIT 10000;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `SplitTicketData`()
+    NO SQL
+    COMMENT 'Dummy as program is expecting this which was used for ticketing'
+BEGIN
+  
+  
+  END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `SplitTicketDataBkp`()
+    NO SQL
+BEGIN
+insert IGNORE into
+  ticketdetails
+  (
+    wytd_waybill_no,
+    td_trip_no,
+    td_route_no,
+    td_ticket_code,
+    td_ticket_num,
+    td_stg_from,
+    td_stg_to,
+    td_full_ticket,
+    td_half_ticket,
+    td_luggage_ticket,
+    td_pass_ticket,
+    td_ticket_fare,
+    td_ticket_date,
+    td_ticket_time,
+    bi_ticket_datetime,
+    bi_ticket_day,
+    bi_ticket_month,
+    bi_ticket_year,
+    bi_ticket_time,
+    bi_ticket_hour,
+    bi_ticket_minute,
+    td_doc_rec_no,
+    td_con_case_code,
+    td_state_code,
+    td_half,
+    td_full,
+    td_bustype,
+    source_row_id,
+    Mc_Serial,
+    Div_Name,
+    Dep_Name,
+    ClientID
+  )
+  select
+   split_str(payload,',',4) 
+  ,split_str(payload,',',5) 
+  ,split_str(payload,',',6)  
+  ,split_str(payload,',',7)  
+  ,split_str(payload,',',8)  
+  ,split_str(payload,',',9)  
+  ,split_str(payload,',',10)  
+  ,split_str(payload,',',11)  
+  ,split_str(payload,',',12)  
+  ,split_str(payload,',',14)  
+  ,split_str(payload,',',13)
+  ,split_str(payload,',',15)
+  ,split_str(payload,',',16)
+  ,split_str(payload,',',17)
+  ,NULL
+  ,NULL
+  ,NULL
+  ,NULL
+  ,NULL
+  ,NULL
+  ,NULL
+  ,split_str(payload,',',19)  
+  ,split_str(payload,',',18)  
+  ,NULL
+  ,split_str(payload,',',21)  
+  ,split_str(payload,',',20)  
+  ,NULL
+  ,id
+  ,split_str(payload,',',1) 
+  ,split_str(payload,',',2) 
+  ,split_str(payload,',',3)  
+  ,ClientID
+  from 
+  clientdata3
+  where 
+  IsSplitSuccessful is null;
+  
+
+Update clientdata3 a inner join TicketDetails b on 
+a.id = b.source_row_id
+SET 
+IsSplitSuccessful=1
+WHERE IsSplitSuccessful is NULL ;
+
+update ticketdetails
+SET
+ bi_ticket_datetime =  STR_TO_DATE(concat(td_ticket_date,' ', td_ticket_time),'%d/%m/%Y %H:%i:%s')   
+where  bi_ticket_datetime is null;
+
+  
+update ticketdetails
+SET
+bi_ticket_day =day(bi_ticket_datetime) ,
+bi_ticket_hour = hour(bi_ticket_datetime),
+bi_ticket_minute = minute(bi_ticket_datetime),
+bi_ticket_month = month(bi_ticket_datetime), 
+bi_ticket_year = year(bi_ticket_datetime),
+bi_ticket_time = STR_TO_DATE(td_ticket_time,'%H:%i:%s')
+where bi_ticket_day is NULL;
+
+UPDATE ticketdetails SET 
+bi_date_key= bi_ticket_year*10000 + bi_ticket_month * 100 +bi_ticket_day
+where bi_date_key is  null;
+
+
+
+  
+  
+  END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdateConductorMaster`(IN `id_in` INT, IN `ClientID_in` VARCHAR(25), IN `STATUS_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+UPDATE newver_conductordetails SET
+
+STATUS=STATUS_in
+
+WHERE  id=id_in And ClientID=ClientID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdateETMMaster`(IN `ClientID_in` VARCHAR(500), IN `STATUS_in` INT, IN `MACHINENAME_in` VARCHAR(500), IN `HID_in` VARCHAR(200), IN `MACHINEID_in` VARCHAR(50))
+    NO SQL
+BEGIN
+
+UPDATE etmlist SET
+
+ClientID=ClientID_in,
+
+MACHINENAME=MACHINENAME_in,
+
+ STATUS=STATUS_in,
+
+MACHINEID=MACHINEID_in
+
+
+
+Where  HID=HID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdateMasterETM`(IN `ClientID_in` VARCHAR(25), IN `STATUS_in` INT, IN `HID_in` VARCHAR(200))
+    NO SQL
+BEGIN
+
+UPDATE etmlist SET
+
+STATUS=STATUS_in
+
+WHERE   
+
+ClientID=ClientID_in AND
+
+HID=HID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdateUserMaster`(IN `UserName_in` VARCHAR(25), IN `Password_in` VARCHAR(25), IN `RoleName_in` VARCHAR(25), IN `ClientID_in` VARCHAR(25), IN `UserID_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+
+
+
+
+	Update  usermasternew set UserName=UserName_in,Password=Password_in,RoleName=RoleName_in,ClientID=ClientID_in Where UserID=UserID_in;
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdatedivdepotmanagementMaster`(IN `ClientID_in` VARCHAR(25), IN `DivisionCode_in` INT, IN `DivisionName_in` VARCHAR(25), IN `DepotCode_in` INT, IN `DepotName_in` VARCHAR(25), IN `ID_in` INT)
+    NO SQL
+BEGIN
+
+UPDATE newver_divdepotmanagement SET
+
+ClientID=ClientID_in,
+
+DivisionCode=DivisionCode_in,
+
+ DivisionName=DivisionName_in,
+
+DepotCode=DepotCode_in,
+
+DepotName=DepotName_in
+
+Where  ID=ID_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `UpdateWayBillMaster`(IN `ClientID_in` VARCHAR(25), IN `status_in` VARCHAR(100), IN `id_in` INT, IN `WBCloserRemar_in` VARCHAR(250))
+    NO SQL
+BEGIN
+IF status_in = "CLOSED" THEN
+UPDATE newver_waybillprogramming 
+SET WBCloseCode=101,
+WBCloserRemar=WBCloserRemar_in ,
+status=status_in,
+ModifiedTS = CURRENT_TIMESTAMP()
+WHERE ClientID=ClientID_in And id=id_in;
+END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Updatenewverrouteprogramming`(IN `triangleno_in` INT, IN `startstg_in` VARCHAR(25), IN `endstg_in` VARCHAR(24), IN `noofstops_in` INT, IN `ClientID_in` VARCHAR(25), IN `id_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+
+
+
+
+
+
+Update newver_routeprogramming
+
+Set rp_triangleno=triangleno_in,rp_startstg=startstg_in,rp_endstg=endstg_in,rp_noofstops=noofstops_in 
+
+
+
+Where ClientID=ClientID_in And id=id_in;
+
+
+
+
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Updatenewverrouteprogrammin`(IN `ClientID_in` VARCHAR(25), IN `id_in` INT)
+    NO SQL
+BEGIN
+
+	
+
+
+
+
+
+Update newver_routeprogramming
+
+Set rp_triangleno=triangleno_in,rp_startstg=startstg_in,rp_endstg=endstg_in,rp_noofstops=noofstops_in 
+
+
+
+Where ClientID=ClientID_in And id=id_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Updatenewverrpstagedetails`(IN `ClientID_in` VARCHAR(25), IN `id_in` INT, IN `triangleno_in` INT, IN `stgcode_in` VARCHAR(40), IN `stgnamee_in` VARCHAR(40), IN `stgno_in` VARCHAR(40))
+    NO SQL
+BEGIN
+
+Update newver_rpstagedetails SET rpsd_triangleno=triangleno_in,rpsd_stgcode=stgcode_in,rpsd_stgnamee=stgnamee_in,rpsd_stgno=stgno_in
+
+ Where ClientID=ClientID_in And id=id_in;
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `newVer_SplitTicketData`()
+BEGIN
+
+
+
+  insert IGNORE into
+
+  newver_ticketdetails
+
+  (
+
+    wytd_waybill_no,
+
+    td_trip_no,
+
+    td_route_no,
+
+    td_ticket_code,
+
+    td_ticket_num,
+
+    td_stg_from,
+
+    td_stg_to,
+
+    td_full_ticket,
+
+    td_half_ticket,
+
+    td_pass_ticket,
+      
+    td_luggage_ticket,  
+
+    td_ticket_fare,
+
+    td_ticket_date,
+
+    td_ticket_time,
+
+    bi_ticket_datetime,
+
+    bi_ticket_day,
+
+    bi_ticket_month,
+
+    bi_ticket_year,
+
+    bi_ticket_time,
+
+    bi_ticket_hour,
+
+    bi_ticket_minute,
+
+    td_doc_rec_no,
+
+    td_con_case_code,
+
+    td_state_code,
+
+    td_half,
+
+    td_full,
+
+    td_bustype,
+
+    source_row_id,
+
+    Mc_Serial,
+
+    Div_Name,
+
+    Dep_Name,
+
+    ClientID,
+
+    td_luggage,
+
+    td_pass,
+
+    td_printstatus
+
+    
+
+  )
+
+  select
+
+   split_str(payload,',',4) 
+
+  ,split_str(payload,',',5) 
+
+  ,split_str(payload,',',6) 
+
+  ,split_str(payload,',',7) 
+
+  ,split_str(payload,',',8) 
+
+  ,split_str(payload,',',9)  
+
+  ,split_str(payload,',',10)  
+
+  ,split_str(payload,',',11)  
+
+  ,split_str(payload,',',12)  
+
+  ,split_str(payload,',',14)  
+
+  ,split_str(payload,',',13) 
+
+  ,split_str(payload,',',15) 
+
+  ,split_str(payload,',',16) 
+
+  ,split_str(payload,',',17) 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,NULL 
+
+  ,split_str(payload,',',19)   
+
+  ,split_str(payload,',',18)   
+
+  ,NULL 
+
+  ,split_str(payload,',',21)   
+
+  ,split_str(payload,',',20)   
+
+  ,NULL 
+
+  ,id 
+
+  ,split_str(payload,',',1)  
+
+  ,split_str(payload,',',2)  
+
+  ,split_str(payload,',',3)   
+
+  ,ClientID 
+
+  ,split_str(payload,',',22) 
+
+  ,split_str(payload,',',23) 
+
+  ,split_str(payload,',',24) 
+
+  from 
+
+  newver_clientdata3
+
+  where 
+
+  IsSplitSuccessful is null;
+
+  
+
+
+
+  end$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `newver_InsertTicketData`(IN `payload` VARCHAR(250), IN `ClientID` VARCHAR(250))
+    NO SQL
+insert IGNORE into
+
+ newver_ticketdetails
+
+ (
+
+   wytd_waybill_no,
+
+   td_trip_no,
+
+   td_route_no,
+
+   td_ticket_code,
+
+   td_ticket_num,
+
+   td_stg_from,
+
+   td_stg_to,
+
+   td_full_ticket,
+
+   td_half_ticket,
+
+   td_pass_ticket,
+     
+   td_luggage_ticket,
+
+   td_ticket_fare,
+
+   td_ticket_date,
+
+   td_ticket_time,
+
+   bi_ticket_datetime,
+
+   bi_ticket_day,
+
+   bi_ticket_month,
+
+   bi_ticket_year,
+
+   bi_ticket_time,
+
+   bi_ticket_hour,
+
+   bi_ticket_minute,
+
+   td_doc_rec_no,
+
+   td_con_case_code,
+
+   td_state_code,
+
+   td_half,
+
+   td_full,
+
+   td_bustype,
+
+   source_row_id,
+
+   Mc_Serial,
+
+   Div_Name,
+
+   Dep_Name,
+
+   ClientID,
+
+    td_luggage,
+
+    td_pass,
+
+    td_printstatus
+
+ )
+
+ VALUES (
+
+   split_str(payload,',',4) 
+
+    ,split_str(payload,',',5) 
+
+    ,split_str(payload,',',6) 
+
+    ,split_str(payload,',',7) 
+
+    ,split_str(payload,',',8) 
+
+    ,split_str(payload,',',9)  
+
+    ,split_str(payload,',',10)  
+
+    ,split_str(payload,',',11)  
+
+    ,split_str(payload,',',12)  
+
+    ,split_str(payload,',',14)  
+
+    ,split_str(payload,',',13) 
+
+    ,split_str(payload,',',15) 
+
+    ,split_str(payload,',',16) 
+
+    ,split_str(payload,',',17) 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,NULL 
+
+    ,split_str(payload,',',19)   
+
+    ,split_str(payload,',',18)   
+
+    ,NULL 
+
+    ,split_str(payload,',',21)   
+
+    ,split_str(payload,',',20)   
+
+    ,NULL 
+
+    ,id 
+
+    ,split_str(payload,',',1)  
+
+    ,split_str(payload,',',2)  
+
+    ,split_str(payload,',',3)   
+
+    ,ClientID 
+
+    ,split_str(payload,',',22) 
+
+    ,split_str(payload,',',23) 
+
+  ,split_str(payload,',',24) 
+
+)$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `newrep_TicketSummary`()
+    NO SQL
+BEGIN
+
+	INSERT into usermasternew(Email,Password, Phone,CreatedBy,CreatedDT,Gender,IsActive,RoleName,UserName,ClientID) 
+
+VALUES(@Email_in,@Password_in,@Phone_in,@CreatedBy_in,CURDATE(),@Gender_in,1,@RoleName_in,@UserName_in,@ClientID_in);
+
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `test`(IN `a` INT)
+    NO SQL
+BEGIN
+    DECLARE crs INT DEFAULT 0;
+    SELECT
+        FLOOR(RAND() * 4001) + 100
+    INTO
+        crs;
+        
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `toll_UserAuthentication`(IN `usernameTextBox_in` VARCHAR(32), IN `PasswordTextBox_in` VARCHAR(32))
+    NO SQL
+SELECT um.Role,um.user,um.pswd,um.IsActive From toll_usernames um Where um.IsActive =1
+ AND um.user=usernameTextBox_in AND um.pswd=PasswordTextBox_in$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `waybillsummary`(IN `ClientID_in` VARCHAR(25))
+    NO SQL
+BEGIN
+
+	
+
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
+
+select 
+
+wbp.wbp_waybillno as 'WaybillNo',
+
+wbp.CreatedDT 'WBDate',
+
+wbp.`status`,
+
+wbp.wbp_condrdetails as 'ConductorCode',
+
+
+
+(SELECT count(1) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And wbp.ClientID=ClientID_in) 
+
+as 'TicketCount',
+
+
+
+(select cd.cd_condrdetails from newver_conductordetails cd where cd.cd_condrdetails_code = wbp.wbp_condrdetails And cd.ClientID=ClientID_in ) as 'Conductor',
+
+(SELECT IFNULL(sum(td.td_full),0)+IFNULL(sum(td.td_half),0)+IFNULL(sum(td.td_luggage),0)+IFNULL(sum(td.td_pass),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in) as 'Amount',
+
+(SELECT IFNULL(sum(td.td_full_ticket),0)+IFNULL(sum(td.td_half_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in) as 'PaxCount',
+
+(SELECT IFNULL(sum(td.td_luggage_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'LuggageCount',
+
+(SELECT IFNULL(sum(td.td_pass_ticket),0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no And td.ClientID=ClientID_in ) as 'PassCount',
+
+CONCAT(IFNULL(wbp.wbp_driver1details,''),'-', IFNULL((select dn.`name` from newver_drivernames dn where 
+
+dn.drv_code = wbp.wbp_driver1details And dn.ClientID=ClientID_in ),'')) as 'Driver',wbp.MachineNo as 'MachineNo',wbp.wbp_vehicalno as 'Vehicle',CASE WHEN wbp.WBCloseCode=-1 
+
+THEN 0 
+
+ELSE wbp.WBCloseCode 
+
+END as 'WBClosingCode',wbp.WBCloserRemar 'ClosingRemark' from newver_waybillprogramming wbp where wbp.ClientID = ClientID_in 
+
+order by wbp.id 
+
+desc limit 1000;
+
+
+
+COMMIT;
+
+END$$
+DELIMITER ;

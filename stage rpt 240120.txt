@@ -1,0 +1,50 @@
+
+SELECT 
+rslt.wdt as 'wbp_date',
+rslt.status 'status',
+rslt.Veh 'vehicalno',
+rslt.STG as 'Stage',
+rslt.WBL as 'WaybillNo',
+rslt.MC as 'MachineNo',
+rslt.TRIP as 'TRP',
+rslt.ROUTE as 'RUT',
+rslt.ConductoreName 'ConductorCode',
+rslt.RUTNM as 'ROUTENAME',
+rslt.STGNM as 'STGNAME',
+SUM(rslt.FULL) as 'FUL',
+SUM(rslt.HLF) as 'HALF',
+SUM(rslt.LUG) as 'LUGG',
+SUM(rslt.PAS) as 'PASS',
+SUM(rslt.CASHAMT) as 'CSHAMT',
+SUM(rslt.RFIDAMT) as 'RFAMT'
+FROM
+(
+SELECT 
+wp.wbp_date as 'wdt',
+wp.wbp_vehicalno as 'Veh',
+wp.wbp_condrdetails as 'ConductoreName',
+wp.status as 'status',
+td.ClientID as 'CL',
+Mc_serial as 'MC',
+td_ticket_code as 'Code',
+bi_waybill as 'WBL',
+td_trip_no as 'TRIP',
+td_route_no as 'ROUTE',
+IFNULL(CONCAT(td_route_no,' ',rp.rp_startstg,'-',rp.rp_endstg),td_route_no) as 'RUTNM',
+td_stg_from as 'STG',
+IFNULL(CONCAT(rpsd.rpsd_stgcode,'(',rpsd.rpsd_stgnamee,')'),td_stg_from) as 'STGNM',
+td_full_ticket as 'FULL',
+td_half_ticket as 'HLF',
+td_luggage_ticket as 'LUG',
+td_pass_ticket as 'PAS',
+(CASE WHEN 
+NOT ((CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4) AND `td_ticket_code`='PASS') 
+THEN `td_ticket_fare` ELSE 0 END ) AS 'CASHAMT',
+(CASE WHEN 
+(CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4)   AND `td_ticket_code`='PASS'
+THEN `td_ticket_fare` ELSE 0  END) AS 'RFIDAMT' 
+FROM `newver_ticketdetails` td
+) rslt
+
+GROUP BY rslt.Stage
+ORDER By rslt.Stage;

@@ -1,0 +1,262 @@
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `MyReportMIS`(IN `ClientID_in` VARCHAR(50), IN `FromDate_in` DATETIME, IN `ToDate_in` DATETIME)
+BEGIN
+SELECT * FROM
+(
+SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'conductorName',
+
+IFNULL((select dd.name from newver_drivernames dd Where dd.drv_code = wbp.wbp_driver1details And dd.ClientID=wbp.ClientID),wbp.wbp_driver1details ) as 'DriverName',
+wbp.wbp_vehicalno as 'vehicalno',
+DATE(wbp.CreatedDt) as 'Date',
+wbp.MachineNo as 'MachineNo' 
+FROM `newver_waybillprogramming` wbp 
+WHERE wbp.ClientID = ClientID_in AND (DATE(wbp.bi_date)
+BETWEEN FromDate_in And ToDate_in) 
+) as wbp1
+LEFT JOIN
+(
+SELECT
+TS_ClientID as 'tsclient',TS_Waybill as 'tswybill', DATE(`TS_TicketingDate`) as 'TickDate',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=TS_ClientID And  rp.rp_routeno= TS_RouteNo),TS_RouteNo),'Not Specified') as 'Route',
+SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04) as 'TotalSaleA',
+SUM(TS_AmtRFIDUse) as 'TotalRFIDuseType3',
+SUM(TS_AmtRFIDUse04) as 'TotalRFIDuseType4',
+SUM(TS_Outflow) as 'totalexpressC', SUM(TS_Inflow)-SUM(TS_Outflow) as  'TotalCollection', SUM(TS_TotTckts) as 'TotalTicketIssues',
+COUNT(TS_TripNo) as 'NoOfTrips',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+(IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = TS_ClientID and  rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno = TS_RouteNo),0) * IFNULL( MAX(TS_TripNo),0)) as TotalKms
+FROM `newver_trip_sheet` 
+WHERE TS_ClientID = ClientID_in
+GROUP BY tsclient,TickDate,TS_Waybill,TS_RouteNo) as ts
+ON tsclient = wClient AND tswybill = WaybillNo
+ORDER BY Date,tswybill,TickDate;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_StgWise`(IN `ClientID_In` VARCHAR(16), IN `WayBill_in` VARCHAR(16))
+    NO SQL
+BEGIN
+SELECT 
+rslt.CL as 'wClient',
+rslt.MC as 'MachineNo',
+rslt.wdt as 'wbp_date',
+rslt.veh as 'vehicalno',
+rslt.WBL as 'WaybillNo',
+rslt.ConductoreName  as 'ConductorCode',
+rslt.status as 'status',
+rslt.STG as 'Stage',
+rslt.STGNM  as 'STGNAME',
+rslt.ROUTE as 'RUT',
+rslt.RUTNM as 'ROUTENAME',
+rslt.TRIP as 'TRP',
+SUM(rslt.FULL)  as 'FUL',
+SUM(rslt.HLF) as 'HALF',
+SUM(rslt.LUG) as 'LUGG',
+SUM(rslt.PAS) as 'PASS',
+SUM(rslt.CASHAMT) as 'CSHAMT',
+SUM(rslt.RFIDAMT) as 'RFAMT'
+FROM
+(
+SELECT 
+wp.wbp_date as 'wdt',
+wp.wbp_vehicalno as 'Veh',
+
+IFNULL(cd.cd_condrdetails,wp.wbp_condrdetails) as 'ConductoreName',    
+wp.status as 'status',
+td.ClientID as 'CL',
+Mc_serial as 'MC',
+td_ticket_code as 'Code',
+td_stg_from as 'STG',
+IFNULL(CONCAT(rpsd.rpsd_stgcode,'(',rpsd.rpsd_stgnamee,')'),td_stg_from) as 'STGNM',
+bi_waybill as 'WBL',
+td_trip_no as 'TRIP',
+td_route_no as 'ROUTE',
+IFNULL(CONCAT(td_route_no,' ',rp.rp_startstg,'-',rp.rp_endstg),td_route_no) as 'RUTNM',
+td_full_ticket as 'FULL',
+td_half_ticket as 'HLF',
+td_luggage_ticket as 'LUG',
+td_pass_ticket as 'PAS',
+(CASE WHEN 
+NOT ((CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4) AND `td_ticket_code`='PASS') 
+THEN `td_ticket_fare` ELSE 0 END ) AS 'CASHAMT',
+(CASE WHEN 
+(CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4)   AND `td_ticket_code`='PASS'
+THEN `td_ticket_fare` ELSE 0  END) AS 'RFIDAMT' 
+FROM `newver_ticketdetails` td
+LEFT JOIN newver_waybillprogramming wp
+ON td.clientID = wp.clientID AND td.bi_waybill = wp.wbp_waybillno
+LEFT JOIN newver_routeprogramming rp
+ON td.clientID = rp.clientID AND td.td_route_no = rp.rp_routeno
+LEFT JOIN newver_rpstagedetails rpsd
+ON td.clientID = rpsd.clientID AND td.td_stg_from = rpsd.rpsd_stgno AND td.td_route_no=rpsd.rpsd_routeno  AND  rpsd.rpsd_triangleno = 1
+LEFT JOIN newver_conductordetails cd
+ON td.ClientID = cd.ClientID AND wp.wbp_condrdetails = cd.cd_condrdetails_code
+WHERE td.clientID = ClientID_In AND td.bi_waybill = WayBill_in
+AND td.td_ticket_code !='DTLS' AND td.td_ticket_code !='EXPN'
+AND td.td_ticket_code !='RCVT'
+) rslt
+GROUP BY TRP,Stage
+ORDER BY TRP,Stage;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_RFID_Usage`(IN `ClientID_in` VARCHAR(25), IN `FromDt_in` VARCHAR(25), IN `ToDt_in` VARCHAR(25), IN `PassType_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT * from 
+(
+SELECT wbp.wbp_waybillno as 'WyBill',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'Conductor',
+IFNULL(wbp.wbp_vehicalno,'Not Available') as 'VehicleNo' 
+from `newver_waybillprogramming` wbp
+WHERE wbp.ClientID= ClientID_in) as t1
+RIGHT JOIN 
+(SELECT 
+DATE(bi_ticket_datetime)  as 'Date',
+Mc_Serial as 'MachineNo',
+bi_waybill as 'WaybillNo',
+
+TIME(bi_ticket_datetime)  as 'Time', 
+td_ticket_num as 'TicketNo',
+IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) 
+from newver_routeprogramming rp where rp.ClientID=td.ClientID 
+And  rp.rp_routeno= td.td_route_no),td.td_route_no) as 'Route',
+IFNULL((select Max(CONCAT(rps1.rpsd_stgcode,' (',rps1.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps1 where  rps1.rpsd_routeno =td.td_route_no 
+AND rps1.rpsd_stgno = td.td_stg_from And rps1.ClientID=td.ClientID),td.td_stg_from) as 'FromStg',
+IFNULL((select Max(CONCAT(rps2.rpsd_stgcode,' (', rps2.rpsd_stgnamee, ')')) 
+From newver_rpstagedetails rps2 where rps2.rpsd_routeno =td.td_route_no 
+AND rps2.rpsd_stgno = td.td_stg_to And rps2.ClientID=td.ClientID),td.td_stg_to) as 'ToStg',
+td_trip_no as 'Trip',
+td_con_case_code as 'CardNo',
+td_doc_rec_no as 'Type',
+td_ticket_fare as 'UsageAmt' 
+FROM `newver_ticketdetails` as td
+where td_ticket_code = 'PASS' 
+ AND
+IF(PassType_in = '0',(CAST(td_doc_rec_no as unsigned) = '4' OR CAST(td_doc_rec_no as unsigned) = '3' ),
+CAST(td_doc_rec_no as unsigned) = PassType_in  )
+AND DATE(bi_ticket_datetime) BETWEEN FromDt_in AND ToDt_in
+AND ClientID= ClientID_in ) as t2
+ON t1.WyBill = t2.WaybillNo 
+ORDER BY Date,WaybillNo,Trip,Time ASC;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_WayBill`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(25))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+wbp.wbp_vehicalno as 'vehicalno',
+wbp.wbp_date  as 'wbp_date',
+
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'ConductorCode',
+status as 'status' 
+FROM `newver_waybillprogramming`  wbp
+WHERE wbp.ClientID = ClientID_in AND wbp.wbp_waybillno = WayBill_in )as  wbp1
+LEFT JOIN
+(SELECT 
+TS_WayBill as 'WaybillNo',
+TS_McSerial as 'MachineNo',
+max(TS_TripNo) as 'Trips',
+-- uday TS_StartTickNo as 'TickStart',
+IFNULL((SUM(TS_Inflow) - SUM(TS_Outflow)),0)  as 'NetCash',
+IFNULL((SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04)+SUM(TS_AmtRFIDUse05)),0) as 'TotalFare',
+SUM(TS_AmtRFIDUse) as 'TotalRFID3',
+ SUM(TS_AmtRFIDUse04) as 'TotalRFID4',
+IFNULL(SUM(TS_Outflow),0) as 'Expenses',
+IFNULL(SUM(TS_ExpnCnt),0) as 'ExpCnt',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+IFNULL(SUM(TS_TotTckts),0) as 'TotalTicketIssued',
+IFNULL(SUM(TS_FullPax),0) as 'FullPaxCount',
+IFNULL(SUM(TS_AmtFull),0) as 'FullTicketFare',
+IFNULL(SUM(TS_HlfPax),0) as 'HalfPaxCount',
+IFNULL(SUM(TS_AmtHlf),0)as 'HalfTicketFare',
+IFNULL(SUM(TS_LugCnt),0) as 'LuggageCount',
+IFNULL(SUM(TS_AmtLug),0) as 'LuggageFare',
+IFNULL((SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)),0)  as 'ConcessionPaxCount',
+IFNULL(SUM(TS_AmtConc),0) as 'ConcessionFare',
+IFNULL(SUM(TS_PnltyCnt),0) as 'PntyCnt',
+IFNULL(SUM(TS_AmtPnlty),0)  as 'Penalty',
+IFNULL(SUM(TS_PassCnt),0) as 'PassCount',
+IFNULL(SUM(TS_RFIDCardUseCnt),0) as 'RFIDCardCnt',
+IFNULL((SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)),0) as 'RfidPaxCnt',
+IFNULL(SUM(TS_RFIDRchgCnt),0) as 'RFIDRchrgCnt',
+IFNULL(SUM(TS_AmtRFIDRecharge),0) as 'RFIDRchrgAmt',
+ SUM(TS_AmtRFIDUse05) as 'TotalRFID5' 
+FROM `newver_trip_sheet`
+WHERE TS_ClientID = ClientID_in AND TS_WayBill = WayBill_in
+Group BY  TS_McSerial
+) as ts
+ON wbp1.WaybillNo = ts.WaybillNo;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`dbuser`@`%` PROCEDURE `Report_Trip_sheet`(IN `ClientID_in` VARCHAR(25), IN `WayBill_in` VARCHAR(16))
+    NO SQL
+BEGIN
+SELECT * FROM
+(SELECT wbp.ClientID as 'wClient',
+wbp.wbp_waybillno as 'WaybillNo',
+wbp.wbp_vehicalno as 'vehicalno',
+wbp.wbp_date  as 'wbp_date',
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as 'ConductorCode',
+wbp.status as 'status' 
+FROM `newver_waybillprogramming`  wbp
+WHERE ClientID = ClientID_in AND wbp_waybillno = WayBill_in )as  wbp1
+LEFT JOIN
+(SELECT 
+TS_WayBill as 'WaybillNo',
+TS_McSerial as 'MachineNo',
+TS_StartDateTime as 'TickDate',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=TS_ClientID And  rp.rp_routeno= TS_RouteNo),TS_RouteNo),'Not Specified') as 'Route',
+IFNULL((SELECT max(cast(rpsd_km as unsigned)) From newver_rpstagedetails rps where rps.ClientID = TS_ClientID and  rps.rpsd_triangleno=1 AND rps.rpsd_routeno = TS_RouteNo),0) as 'TotalKms',
+TS_TripNo as 'TripNo',
+TS_TripStat as 'UpDn',
+TS_StartTickNo as 'TickStart',
+TS_EndTickNo as 'TickEnd', 
+IFNULL((SUM(TS_Inflow) - SUM(TS_Outflow)),0)  as 'NetCash',
+IFNULL((SUM(TS_Inflow)+SUM(TS_AmtRFIDUse)+SUM(TS_AmtRFIDUse04)),0) as 'TotalFare',
+SUM(TS_AmtRFIDUse) as 'TotalRFIDuse3',
+SUM(TS_AmtRFIDUse04) as 'TotalRFIDuse4',
+IFNULL(SUM(TS_Outflow),0) as 'Expenses',
+IFNULL(SUM(TS_ExpnCnt),0) as 'ExpCnt',
+SUM(TS_FullPax)+SUM(TS_HlfPax)+SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)+SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)+SUM(TS_PassCnt) as  'Paxtrvals',
+SUM(TS_TotTckts) as 'TotalTicketIssued',
+IFNULL(SUM(TS_FullPax),0) as 'FullPaxCount',
+IFNULL(SUM(TS_AmtFull),0) as 'FullTicketFare',
+IFNULL(SUM(TS_HlfPax),0) as 'HalfPaxCount',
+IFNULL(SUM(TS_AmtHlf),0)as 'HalfTicketFare',
+IFNULL(SUM(TS_LugCnt),0) as 'LuggageCount',
+IFNULL(SUM(TS_AmtLug),0) as 'LuggageFare',
+IFNULL((SUM(TS_ConcFullPax)+SUM(TS_ConcHlfPax)),0)  as 'ConcessionPaxCount',
+IFNULL(SUM(TS_AmtConc),0) as 'ConcessionFare',
+IFNULL(SUM(TS_PnltyCnt),0) as 'PntyCnt',
+IFNULL(SUM(TS_AmtPnlty),0)  as 'Penalty',
+IFNULL(SUM(TS_PassCnt),0) as 'PassCount',
+IFNULL(SUM(TS_RFIDCardUseCnt),0) as 'RFIDCardCnt',
+IFNULL((SUM(TS_RFIDFullPax)+SUM(TS_RFIDHlfPax)),0) as 'RfidPaxCnt',
+IFNULL(SUM(TS_RFIDRchgCnt),0) as 'RFIDRchrgCnt',
+IFNULL(SUM(TS_AmtRFIDRecharge),0) as 'RFIDRchrgAmt'
+FROM `newver_trip_sheet`
+WHERE TS_ClientID = ClientID_in AND TS_WayBill = WayBill_in
+GROUP BY MachineNo,TripNo,TS_StartDateTime,TickStart,TickEnd,TS_TripStat,Route,TotalKms
+) as ts
+
+ON wbp1.WaybillNo = ts.WaybillNo
+ORDER BY wbp_date,TripNo,TickDate;
+END$$
+DELIMITER ;

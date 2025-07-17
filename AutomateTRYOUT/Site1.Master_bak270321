@@ -1,0 +1,266 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site1.master.cs" Inherits="AutomateTRYOUT.Site1" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Automate Systems ETM BI</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
+
+    <link href="css/animate.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+    <link href="css/MyCustom.css" rel="stylesheet" />
+
+    <asp:ContentPlaceHolder ID="head" runat="server">
+    </asp:ContentPlaceHolder>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div id="wrapper">
+
+            <nav class="navbar-default navbar-static-side" role="navigation">
+                <div class="sidebar-collapse">
+
+                    <%--                    <asp:Panel  ScrollBars="Horizontal" ID="PlnMaster" runat="server" Visible="false">--%>
+                    <nav class="navbar-default navbar-static-side" role="navigation">
+                        <div class="sidebar-collapse">
+                            <ul class="nav metismenu" id="side-menu">
+                                <li class="nav-header">
+
+                                    <div class="dropdown profile-element">
+                                        <span></span>
+
+                                        <span class="clear"><span class="block m-t-xs"><strong class="font-bold">
+                                            <asp:Label ID="lblUserName" runat="server" Text="" ForeColor="White"></asp:Label>
+
+                                        </strong>
+                                        </span></span>
+
+
+                                        <span class="clear"><span class="block m-t-xs"><strong class="font-bold">
+                                            <asp:Label ID="lblClientID" runat="server" Text="" ForeColor="White"></asp:Label>
+
+                                        </strong>
+                                        </span></span>
+
+
+
+
+                                    </div>
+                                    <div class="logo-element">
+                                        AM
+                                    </div>
+                                </li>
+
+                                <li class="active" id="menu_OperationsView" runat="server">
+                                    <a><i class="fa fa-bus"></i><span class="nav-label">Operations View</span> <span class="fa arrow"></span></a>
+                                    <ul id="menu_OperationsView_ul" runat="server" class="nav nav-second-level">
+                                        <li>
+                                            <asp:HyperLink ID="hl_OprationsView_RecentTicketsNew" runat="server">Recent Operations </asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink Visible="false" ID="hl_OprationsView_TodaySSummary" runat="server">Recent Operations</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink Visible="true" ID="hl_OprationsView_RecentTickets" runat="server">Recent Tickets </asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink Visible="false" ID="hl_reports_Summary" runat="server">Waybills </asp:HyperLink>
+                                        </li>
+
+
+
+
+                                    </ul>
+                                </li>
+
+
+                                <li id="menu_reports" runat="server" visible="false">
+                                    <a><i class="fa fa-line-chart"></i><span class="nav-label">Reports</span> <span class="fa arrow"></span></a>
+                                    <ul id="menu_reports_ul" runat="server" class="nav nav-second-level">
+                                        <li>
+                                            <asp:HyperLink ID="hL_reports_NewMIS" runat="server">MIS Report</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_reports_MIS" runat="server">RFID Report</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <%-- <asp:HyperLink ID="hl_OperationalView_tickets"  runat="server" Visible="false">Tickets Report</asp:HyperLink> --%>
+                                            <asp:HyperLink ID="hl_OperationalView_Waybill" runat="server" Visible="true">WayBill Report</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_OperationsView_TripSheet" Visible="True" runat="server">Trip Sheet Report</asp:HyperLink>
+                                            <%-- <asp:HyperLink ID="hl_OperationsView_WayBills" visible="false" runat="server">Waybill Report</asp:HyperLink> --%> 
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_reports_GetPass" runat="server">Gatepass Report</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hL_reports_InspectorReport" runat="server" Visible="True">Inspector Report</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_reports_Agent" runat="server">Agent Report</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hL_GirdView_TicketReport" runat="server" Visible="false">Ticket Report</asp:HyperLink>
+                                        </li>
+
+
+                                        <li>
+                                            <asp:HyperLink ID="hL_GirdView_StgWiseReport" runat="server" Visible="true">Stage-Wise Report</asp:HyperLink>
+                                        </li>
+
+
+
+
+                                    </ul>
+                                </li>
+
+                                <li id="menu_master" runat="server">
+                                    <a><i class="fa fa-briefcase"></i><span class="nav-label">Masters</span> <span class="fa arrow"></span></a>
+                                    <ul id="menu_master_ul" runat="server" class="nav nav-second-level">
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_RouteMaster" runat="server">Route Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_ConductorMasterNew" runat="server">Conductor Master</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_AgentsMaster" runat="server">Agents Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_DriverMaster" runat="server">Driver Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_VehicleMaster" runat="server" Visible="false">Vehicle Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_InspectorMaster" runat="server">Inspector Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hl_superadmin_ETMMachines" runat="server">ETM  Master</asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_DivAndDepoMaster" runat="server" Visible="False">Div And Depo Master</asp:HyperLink>
+                                        </li>
+
+
+
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_superadmin_WayBillMaster" runat="server">Way Bill Master </asp:HyperLink>
+                                        </li>
+                                        <li>
+                                            <asp:HyperLink ID="hl_Administrator_LoadMaster" runat="server">Load Data</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_Administrator_UserMaster" runat="server">User Master</asp:HyperLink>
+                                        </li>
+
+
+
+
+                                    </ul>
+                                </li>
+
+                                <li id="menu_Administrator" runat="server">
+                                    <a><i class="fa fa-child"></i><span class="nav-label">Administrator</span> <span class="fa arrow"></span></a>
+                                    <ul id="menu_Administrator_ul" runat="server" class="nav nav-second-level">
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_superadmin_ConductorMasterAdminstrator" runat="server" Visible="False">Conductor State </asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hL_Master_ETMMaster" runat="server">ETM Management</asp:HyperLink>
+                                        </li>
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_superadmin_DivAndDepoMaster" runat="server" Visible="False">Div And Depo Master </asp:HyperLink>
+                                        </li>
+
+
+
+
+                                    </ul>
+                                </li>
+
+                                <li id="menu_superadmin" runat="server">
+                                    <a><i class="fa fa-sliders"></i><span class="nav-label">Super Admin</span> <span class="fa arrow"></span></a>
+                                    <ul id="menu_superadmin_ul" runat="server" class="nav nav-second-level">
+
+                                        <li>
+                                            <asp:HyperLink ID="hl_SuperAdmin_ClientMaster" runat="server">Client Master</asp:HyperLink>
+                                        </li>
+                                    </ul>
+                                </li>
+
+                            </ul>
+
+                        </div>
+                    </nav>
+
+                    <%--</asp:Panel>--%>
+                </div>
+            </nav>
+
+            <div id="page-wrapper" class="gray-bg">
+                <div class="row border-bottom">
+                    <nav class="navbar navbar-static-top white-bg" role="navigation" style="margin-bottom: 0">
+                        <div class="navbar-header">
+                            <a class="navbar-minimalize minimalize-styl-2 btn btn-primary " href="#"><i class="fa fa-bars"></i></a>
+                        </div>
+                        <div class="navbar-header">
+                            <h2>Online ETM Reports</h2>
+                        </div>
+
+                        <ul class="nav navbar-top-links navbar-right">
+                            <li>
+                                <asp:Button ID="btnlnkLogout" class="fa fa-sign-out" OnClick="lnkLogout_Click" ForeColor="#663366" runat="server" Text="Logout" />
+                                <%-- <asp:LinkButton class="fa fa-sign-out" ID="lnkLogout" runat="server" ForeColor="#663366"
+                                    OnClick="lnkLogout_Click">Logout</asp:LinkButton>--%>
+                            </li>
+                        </ul>
+
+                    </nav>
+                </div>
+                <div class="wrapper wrapper-content animated fadeInRight">
+                    <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                    </asp:ContentPlaceHolder>
+                </div>
+                <%-- <div class="footer">
+                    <div class="pull-right">--%>
+                <%--                10GB of <strong>250GB</strong> Free.--%>
+                <%--</div>
+                    <div>
+                        <strong>Copyright</strong> Automate Systems &copy; 2017-2021
+                    </div>
+                </div>--%>
+            </div>
+        </div>
+
+        <!-- Mainly scripts -->
+        <script src="js/jquery-2.1.1.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/plugins/metisMenu/jquery.metisMenu.js"></script>
+        <script src="js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+
+        <!-- Custom and plugin javascript -->
+        <script src="js/inspinia.js"></script>
+        <script src="js/plugins/pace/pace.min.js"></script>
+
+
+
+    </form>
+</body>
+</html>

@@ -1,0 +1,82 @@
+Routes are stored in FLASH as follows
+
+Route_Summary (First line) 64 bytes each
+This indicates OFFSET in RUT_TBL area where Route Stagesa and fare structure is stored
+
+RUT_TBL
+Each Stage will be stored with 48 bytes each  Sequentially
+Immediately after that Fare structure with each having 3 bytes would be stored.
+No of fare blocks are n(n-1)/2
+
+Total bytes for a Route of n Stages would be stored as 
+64 + (n*48) + [n*(n-1)/2]
+
+Maximum Stages in CCT currently 107 for a Single Route
+64 + 5136 + 5671 = 10871 ~10.6K
+
+FOR AROUND 285 ROUTE 875KB IS REQUIRED FOR CCT ALL ROUTES
+==================================================================
+
+First line for Summary of 64 bytes
+then no of lines that would follow are [n(n-1)/2] + (n-1)  where n is no of stages
+Each line of 56 characters (may be 55 if decimalpoint is dropped)
+
+Here for a route of say 100 stages No of lines would be 5049 x 56 = 282744  ~276K
+Practically server is having 160K file of 1038 tickets so this can be handled
+
+
+$R310 02 NON -AC BUS  CHE CHENNAI     MAD MADURAI     005 0060 T 001
+
+001 CHE CHENNAI     0000 0000.00                  000000
+002 TND TINDIVANAM  0020 0002.50                  000000
+003 VIL VILUPPURAM  0030 0003.50                  000000
+004 TCH TIRUCHCHI   0045 0004.00                  000000
+005 MAD MADURAI     0060 0005.00                  000000
+
+002 TND TINDIVANAM  0020 0000.00                  000000
+003 VIL VILUPPURAM  0030 0002.50                  000000
+004 TCH TIRUCHCHI   0045 0003.50                  000000
+005 MAD MADURAI     0060 0004.00                  000000
+
+003 VIL VILUPPURAM  0030 0000.00                  000000
+004 TCH TIRUCHCHI   0045 0002.50                  000000
+005 MAD MADURAI     0060 0003.50                  000000
+
+004 TCH TIRUCHCHI   0045 0000.00                  000000
+005 MAD MADURAI     0060 0002.50                  000000
+==================================================================
+Or 3 files of different length each
+First line for Summary of 64 bytes
+
+Or May be complete file and write new ftp_rcv
+Last 8 bytes to be considered as CHKSM to check
+ 
+
+Here for a 100 stage lines of fare structure would be n(n-1)/2 Only
+4950 lines each 6 bytes = 29700 ~29K only 
+So would be faster
+and for stages 107 x 48 = 5136 ~ 5K 
+
+OR 68 bytes each with 108 lines including Summary 7344 byte ~7K
+SO two files with some naming conventions seems GOOD
+
+----DURGAMBA0310S.TXT------Summary and Stages ---------------------------
+$R31002NON -AC BUS CHECHENNAI    MADMADURAI    0050060T001
+001CHECHENNAI    0000                123456
+002TNDTINDIVANAM 0020                123457
+003VILVILUPPURAM 0030                123458
+004TCHTIRUCHCHI  0045                123459
+005MADMADURAI    0060                123450
+xxxxxxxx
+----DURGAMBA0310F.TXT------Fare Table---------------------------
+000250
+000350
+000400
+000500
+000250
+000350
+000400
+000250
+000350
+000250
+xxxxxxxx

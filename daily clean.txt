@@ -1,0 +1,14 @@
+
+INSERT INTO `newver_ticketdetails_bak` 
+SELECT * FROM  `newver_ticketdetails` td
+where (td.`ClientID`,td.`bi_waybill`) IN 
+(
+SELECT wp.`ClientID`,wp.`wbp_waybillno` from newver_waybillprogramming wp
+where DATE(`CreatedDT`) < ADDDATE(CURRENT_DATE(), INTERVAL -62 DAY));
+-- ////
+DELETE FROM `newver_ticketdetails` td
+where (td.`ClientID`,td.`bi_waybill`) IN 
+(
+SELECT wp.`ClientID`,wp.`wbp_waybillno` from newver_waybillprogramming wp
+where DATE(`CreatedDT`) < ADDDATE(CURRENT_DATE(), INTERVAL -62 DAY));
+

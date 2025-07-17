@@ -1,0 +1,605 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using MySql.Data.MySqlClient;
+using System.Configuration;
+using System.Data;
+using System.Text.RegularExpressions;
+
+namespace AutomateTRYOUT.Administrator
+{
+    public partial class UserMaster : System.Web.UI.Page
+    {
+        DataSet ds;
+        DataSet dsGetForUpdate;
+        protected void Page_Load(object sender, EventArgs e)
+        {
+
+            if (!this.IsPostBack)
+            {
+                (this.Master as Site1).CheckSessionVar();
+                //uday (this.Master as Site1).SetActiveMenu("menu_Administrator");
+                (this.Master as Site1).SetActiveMenu("menu_master");
+                lblErrMsg.Text = "";
+                lblErrMsg.Visible = false;
+
+
+                if (!string.IsNullOrEmpty(Session["ClientID"].ToString()))
+                {
+                    txtsesstionClient.Text = Session["ClientID"].ToString();
+                }
+                
+             
+                // txtFromDateTime.Text = System.DateTime.Now.AddDays(-1).ToString("dd/MM/yyyy ").Replace('-', '/');
+                //  txtToDateTime.Text = DateTime.Now.ToString("dd/MM/yyyy ").Replace('-', '/');
+                //  txtFromDateTime.Text = System.DateTime.Now.AddDays(-1).ToString("dd-MM-yy ").Replace('-', '-');
+                //   txtToDateTime.Text = DateTime.Now.ToString("dd-MM-yy ").Replace('-', '-');
+                bindGridView();
+                if (Session["RoleName"].ToString() == "NormalUser") btnAddNew.Visible = false;//uday
+                //ddlConductorFill();
+                // ddlWayBillFill();
+                // ddlMachineFill();
+                // txtFromDateTime.Enabled = false;
+                // txtToDateTime.Enabled = false;
+                //  ddlTicketTypeFill();
+                // ddlRouteFill();
+
+
+
+            }
+
+        }
+
+
+        protected void btnCancel_Click(object sender, EventArgs e)
+        {
+
+            PlnAddnewUser.Visible = false;
+            pnlgvUserMaster.Visible = true;
+            btnAddNew.Visible = true;
+            if (Session["RoleName"].ToString() == "NormalUser") btnAddNew.Visible = false;//uday
+            txtPassword.Text = "";
+            TxtUserId.Text = "";
+            txtUserName.Text = "";
+            lblErrMsg.Text = "";
+            lblErrMsg.Visible = false;
+        }
+
+
+
+
+        private int CheckDublicUserName(String UserName)
+        {
+            try
+            {
+                int RtnVal;
+                string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+                using (MySqlConnection con = new MySqlConnection(constr))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand("CheckUserName"))
+                    {
+                        using (MySqlDataAdapter da = new MySqlDataAdapter())
+                        {
+                            cmd.Connection = con;
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.CommandTimeout = 600;
+                            cmd.Parameters.AddWithValue("@ClientID_in",txtsesstionClient.Text);
+                            cmd.Parameters.AddWithValue("@UserName_in",UserName);
+
+                            da.SelectCommand = cmd;
+
+                            using (DataTable dt = new DataTable())
+                            {
+                                da.Fill(dt);
+
+                                if (dt.Rows.Count > 0)
+                                {
+                                    return RtnVal = 0;
+
+                                }
+                                else
+                                {
+                                    return RtnVal = 1;
+                                }
+
+
+
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+
+        protected void btnSave_Click(object sender, EventArgs e)
+        {
+
+            try
+            {
+                int blnReturnDublicVal;
+                blnReturnDublicVal = CheckDublicUserName(txtUserName.Text);
+
+                if (blnReturnDublicVal == 1)
+                {
+                    bool blnReturnVal = false;
+                    string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+                    using (MySqlConnection con = new MySqlConnection(constr))
+                    {
+                        using (MySqlCommand cmd = new MySqlCommand("InsertUserMasternew"))
+                        {
+                            using (MySqlDataAdapter da = new MySqlDataAdapter())
+                            {
+                                con.Open();
+                                cmd.Connection = con;
+                                cmd.CommandType = CommandType.StoredProcedure;
+                                cmd.CommandTimeout = 600;
+                                //   cmd.Parameters.AddWithValue("@ClientID_in", Session["ClientID"].ToString());
+                                cmd.Parameters.AddWithValue("@UserName_in",txtUserName.Text);
+                                cmd.Parameters.AddWithValue("@Password_in",txtPassword.Text);
+                                //  cmd.Parameters.AddWithValue("@CreatedBy_in", );
+                                cmd.Parameters.AddWithValue("@RoleName_in",ddlRoleName.SelectedValue.ToString());
+                                cmd.Parameters.AddWithValue("@ClientID_in", txtsesstionClient.Text);
+                                //cmd.Parameters.AddWithValue("@C_in", txtsesstionClient.Text);
+
+
+                                blnReturnVal = Convert.ToBoolean(cmd.ExecuteNonQuery());
+
+                                bindGridView();
+
+                                PlnAddnewUser.Visible = false;
+                                pnlgvUserMaster.Visible = true;
+                                btnAddNew.Visible = true;
+                                if (Session["RoleName"].ToString() == "NormalUser") btnAddNew.Visible = false;//uday
+                                using (DataTable dt = new DataTable())
+                                {
+                                //    da.Fill(dt);
+                                //    gvUserMaster.DataSource = dt;
+                                //    gvUserMaster.DataBind();
+
+
+
+                                }
+                                con.Close();
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    lblErrMsg.Text = "";
+                    lblErrMsg.Visible = true;
+                    lblErrMsg.Text = "User Name already added";
+
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+
+        }
+        //uday protected void gvRouteMasterr_PageIndexChanged(object sender, EventArgs e)
+        protected void gvUserMaster_PageIndexChanged(object sender, EventArgs e)
+        {
+            bindGridView();
+        }
+
+        //uday protected void gvRouteMasterr_PageIndexChanging(object sender, GridViewPageEventArgs e)
+        protected void gvUserMaster_PageIndexChanging(object sender, GridViewPageEventArgs e)
+        {
+            gvUserMaster.PageIndex = e.NewPageIndex;
+
+            gvUserMaster.EditIndex = -1;
+        }
+
+        private void bindGridView()
+        {
+            string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+            using (MySqlConnection con = new MySqlConnection(constr))
+            {
+                using (MySqlCommand cmd = new MySqlCommand("GetUser"))
+                {
+                    using (MySqlDataAdapter da = new MySqlDataAdapter())
+                    {
+                        cmd.Connection = con;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 600;
+                        //  cmd.Parameters.AddWithValue("@ClientID_in", "HTCGAJ01");
+                        cmd.Parameters.AddWithValue("@ClientID_in", txtsesstionClient.Text);
+                        cmd.Parameters.AddWithValue("@CrntRole", Session["RoleName"].ToString());//uday
+                        da.SelectCommand = cmd;
+
+                        using (DataTable dt = new DataTable())
+                        {
+                            da.Fill(dt);
+                            gvUserMaster.DataSource = dt;
+                            gvUserMaster.DataBind();
+
+
+
+                        }
+                    }
+                }
+            }
+
+        }
+
+        protected void gvUserMaster_RowDeleted(object sender, GridViewDeletedEventArgs e)
+        {
+
+        }
+
+        public DataSet GetUserid(String AddressID)
+        {
+
+
+            DataSet ds = new DataSet();
+
+            string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+            using (MySqlConnection con = new MySqlConnection(constr))
+            {
+                using (MySqlCommand cmd = new MySqlCommand(
+                 
+                    "GetUserIdWiseDetails"
+
+                    ))
+                {
+                    using (MySqlDataAdapter da = new MySqlDataAdapter())
+                    {
+                        cmd.Connection = con;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 600;
+                        //cmd.Parameters.AddWithValue("@ClientID_in", Session["ClientID"].ToString());
+                        cmd.Parameters.AddWithValue("@UserID_in", AddressID);
+
+                        da.SelectCommand = cmd;
+
+                        using (DataTable dt = new DataTable())
+                        {
+                            da.Fill(ds);
+                            //  gvUserMaster.DataSource = dt;
+                            // gvUserMaster.DataBind();
+
+
+
+                        }
+                    }
+                }
+            }
+            return ds;
+
+
+        }
+
+        protected void gvUserMaster_RowEditing(object sender, GridViewEditEventArgs e)
+        {
+            btnCancel.Visible = true;
+            btnAddNew.Visible = false;
+            btnSave.Visible = false;
+            btnUpdate.Visible = true;
+            PlnAddnewUser.GroupingText = "Update User Master";
+            // bool flag = false;
+            try
+            {
+                //    for (int i = 0; i < gvAddressMaster.Rows.Count; i++)
+                //    {
+                //        RadioButton rb = (RadioButton)gvAddressMaster.Rows[i].Cells[0].FindControl("rdbAddressMaster");
+                //        if (rb != null)
+                //        {
+                //            if (rb.Checked)
+                //            {
+                //                Label addressID = gvAddressMaster.Rows[i].Cells[0].FindControl("lblAddressIDGrid") as Label;
+                //                flag = true;
+                //                break;
+                //            }
+                //        }
+                //        else
+                //        {
+                //            flag = false;
+                //        }
+
+                lblVendorName.Visible = false;
+                lblVendorNameValue.Visible = false;
+
+                txtUserName.Enabled = false;
+                int rowIndex = Convert.ToInt32(e.NewEditIndex);
+                //if (flag == true)
+                //{  um.UserID,um.`Password`,um.CreatedBy,IsActive,
+                Label userid = gvUserMaster.Rows[e.NewEditIndex].FindControl("lblid") as Label;
+                dsGetForUpdate = GetUserid(userid.Text);
+                HfCurrentLoc.Value = userid.Text;
+                txtUserName.Text = dsGetForUpdate.Tables[0].Rows[0]["UserName"].ToString();
+                txtPassword.Text = dsGetForUpdate.Tables[0].Rows[0]["Password"].ToString();
+                ddlRoleName.SelectedValue = dsGetForUpdate.Tables[0].Rows[0]["RoleName"].ToString();
+
+                //  ddlClientName.SelectedValue = dsGetForUpdate.Tables[0].Rows[0]["ClientID"].ToString();
+                //  txtSecondLine.Text = dsGetForUpdate.Tables[0].Rows[0]["SecondLine"].ToString();
+                //  txtCity.Text = dsGetForUpdate.Tables[0].Rows[0]["City"].ToString();
+                //   txtState.Text = dsGetForUpdate.Tables[0].Rows[0]["State"].ToString();
+                //   txtCountry.Text = dsGetForUpdate.Tables[0].Rows[0]["Country"].ToString();
+                //  txtPINCode.Text = dsGetForUpdate.Tables[0].Rows[0]["PINCode"].ToString();
+                // txtContactTelephoneNo.Text = dsGetForUpdate.Tables[0].Rows[0]["ContactTelephoneNo"].ToString();
+                // ddlOperationCenter.SelectedValue = dsGetForUpdate.Tables[0].Rows[0]["OperationCenter"].ToString();
+                //  hfEntityCode.Value = dsGetForUpdate.Tables[0].Rows[0]["EntityID"].ToString();
+                //  ddlEntityType.SelectedValue = dsGetForUpdate.Tables[0].Rows[0]["EntityTYpe"].ToString();
+                //  ddlTypeOfAddress.SelectedValue = dsGetForUpdate.Tables[0].Rows[0]["LinkType"].ToString();
+                //  pnlAdd.Visible = true;
+                //  pnlAddressMaster.Visible = false;
+                PlnAddnewUser.Visible = true;
+                pnlgvUserMaster.Visible = false;
+                btnAddNew.Visible = false;
+                btnSave.Visible = false;
+                //  btnAdd.Visible = false;
+                btnUpdate.Visible = true;
+                // btnBack.Visible = false;
+                //}
+                //else
+                //{
+                //    lblErrMsg.Text = "Please select atleast one record";
+                //    lblErrMsg.Visible = true;
+                //}
+                //}
+            }
+            catch (MySqlException ex)
+            {
+                throw ex;
+            }
+
+        }
+
+
+
+
+
+
+
+        private int DeleteMethod(int UserName)
+        {
+            int RtnVal;
+            bool blnReturnVal = false;
+
+
+
+
+
+            string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+            using (MySqlConnection con = new MySqlConnection(constr))
+            {
+                using (MySqlCommand cmd = new MySqlCommand("DeleteUserMasternew"))
+                {
+                    using (MySqlDataAdapter da = new MySqlDataAdapter())
+                    {
+                        con.Open();
+                        cmd.Connection = con;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.CommandTimeout = 600;
+                        //  cmd.Parameters.AddWithValue("@ClientID_in", Session["ClientID"].ToString());
+                        cmd.Parameters.AddWithValue("@UserID_in", UserName);
+
+                        blnReturnVal = Convert.ToBoolean(cmd.ExecuteNonQuery());
+                        con.Close();
+
+                        if (blnReturnVal == false)
+                        {
+                            return RtnVal = 0;
+                        }
+                        else
+                        {
+                            return RtnVal = 1;
+
+                        }
+
+                      ;
+
+
+                    }
+                }
+            }
+
+            ////string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+            ////using (MySqlConnection con = new MySqlConnection(constr))
+            ////{
+            ////    using (MySqlCommand cmd = new MySqlCommand("DeleteMethod"))
+            ////    {
+            ////        using (MySqlDataAdapter da = new MySqlDataAdapter())
+            ////        {
+
+            ////         // con.Open();
+            ////            cmd.Connection = con;                       
+            ////            cmd.CommandType = CommandType.StoredProcedure;
+
+            ////            cmd.Parameters.AddWithValue("@UserID_in", UserName);
+            ////            blnReturnVal = Convert.ToBoolean(cmd.ExecuteNonQuery());
+
+
+
+
+            ////            if (blnReturnVal == false)
+            ////            {
+            ////                return RtnVal = 0;
+            ////            }
+            ////            else
+            ////            {
+            ////                return RtnVal = 1;
+
+            ////            }
+            ////            //da.SelectCommand = cmd;
+
+            ////            //using (DataTable dt = new DataTable())
+            ////            //{
+            ////            //    da.Fill(dt);
+
+            ////            //    if (dt.Rows.Count > 0)
+            ////            //    {
+            ////            //        return RtnVal = 0;
+
+            ////            //    }
+            ////            //    else
+            ////            //    {
+            ////            //        return RtnVal = 1;
+            ////            //    }
+
+
+
+            ////            //}
+            ////        }
+            ////    }
+            ////}
+        }
+
+        protected void gvUserMaster_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+
+
+            int returnval;
+
+            lblMsg.Visible = false;
+            Label lbldataset = gvUserMaster.Rows[e.RowIndex].FindControl("lblid") as Label;
+
+            // candelete = vmw.CheckAssestCount(lbldataset.Text);
+            //  if (candelete == true)
+            //  {
+            returnval = DeleteMethod(Convert.ToInt16(lbldataset.Text));
+            gvUserMaster.EditIndex = -1;
+            if (returnval == 1)
+            {
+
+
+                PlnAddnewUser.Visible = false;
+                pnlgvUserMaster.Visible = true;
+                btnAddNew.Visible = true;
+                if (Session["RoleName"].ToString()=="NormalUser") btnAddNew.Visible = false;//uday
+                lblErrMsg.Visible = false;
+                lblMsg.Text = "Record Deleted Successfully";
+                lblMsg.Visible = true;
+                bindGridView();
+            }
+            //}
+            else
+            {
+                lblErrMsg.Visible = false;
+                lblErrMsg.Text = "Can not delete User Name";
+                lblErrMsg.Visible = true;
+
+            }
+
+            //  }
+        }
+        protected void FillddlRolename()//uday
+        {
+            ddlRoleName.Items.Clear();
+            switch(Session["RoleName"].ToString())
+            {
+                case "NormalUser":
+                    ddlRoleName.Items.Add("NormalUser");
+                    break;
+                case "Manager":
+                    ddlRoleName.Items.Add("NormalUser");
+                    ddlRoleName.Items.Add("Manager");
+                    break;
+                case "Administrator":
+                    ddlRoleName.Items.Add("NormalUser");
+                    ddlRoleName.Items.Add("Manager");
+                    ddlRoleName.Items.Add("Administrator");
+                    break;
+                default:
+                    ddlRoleName.Items.Add("NormalUser");
+                    break;
+            }
+
+        }
+        protected void btnAddNew_Click(object sender, EventArgs e)
+        {
+            FillddlRolename();
+            PlnAddnewUser.GroupingText = "Add New User Master";
+            PlnAddnewUser.Visible = true;
+            pnlgvUserMaster.Visible = false;
+            btnAddNew.Visible = false;
+            txtPassword.Text = "";
+
+            txtUserName.Text = "";
+
+            btnUpdate.Visible = false;
+            btnSave.Visible = true;
+            btnCancel.Visible = true;
+            TxtUserId.Text = "";
+            txtUserName.Text = "";
+            lblErrMsg.Text = "";
+            lblErrMsg.Visible = false;
+            txtUserName.Enabled = true;
+            lblMsg.Text = "";
+            lblMsg.Visible = false;
+
+        }
+
+        protected void btnUpdate_Click(object sender, EventArgs e)
+        {
+
+
+
+            try
+            {
+
+
+                bool blnReturnVal = false;
+                string constr = ConfigurationManager.ConnectionStrings["ConnectToMySQLDB"].ConnectionString;
+                using (MySqlConnection con = new MySqlConnection(constr))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand("UpdateUserMaster"))
+                    {
+                        using (MySqlDataAdapter da = new MySqlDataAdapter())
+                        {
+                            con.Open();
+                            cmd.Connection = con;
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.CommandTimeout = 600;
+                            cmd.Parameters.AddWithValue("@UserName_in",txtUserName.Text);
+                            cmd.Parameters.AddWithValue("@Password_in",txtPassword.Text);                          
+                            cmd.Parameters.AddWithValue("@RoleName_in",ddlRoleName.SelectedValue.ToString());
+                            cmd.Parameters.AddWithValue("@UserID_in",Convert.ToInt16(HfCurrentLoc.Value));
+                            cmd.Parameters.AddWithValue("@ClientID_in",txtsesstionClient.Text);
+                            blnReturnVal = Convert.ToBoolean(cmd.ExecuteNonQuery());
+
+                            bindGridView();
+
+                            PlnAddnewUser.Visible = false;
+                            pnlgvUserMaster.Visible = true;
+                            btnAddNew.Visible = true;
+                            if (Session["RoleName"].ToString() == "NormalUser") btnAddNew.Visible = false;//uday
+                            con.Close();
+                        }
+                    }
+
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            //bool returnVal = true;
+            //returnVal =UpdateMethod(hfAddressID.Value, txtFirstLine.Text, txtSecondLine.Text, txtCity.Text, txtState.Text, txtCountry.Text, txtPINCode.Text, txtContactTelephoneNo.Text, hfEntityCode.Value, ddlEntityType.SelectedValue.ToString(), ddlTypeOfAddress.SelectedValue.ToString());
+            //if (returnVal == true)
+            //{
+            //    pnlAdd.Visible = false;
+            //    btnAdd.Visible = true;
+            //    gvAddressMaster.EditIndex = -1;
+            //    BindGridView(hfCode.Value);
+            //    lblMsg.Text = "Record updated successfully";
+            //    lblMsg.Visible = true;
+            //    pnlAddressMaster.Visible = true;
+            //}
+        }
+    }
+}

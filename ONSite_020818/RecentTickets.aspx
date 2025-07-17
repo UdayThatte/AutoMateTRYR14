@@ -1,0 +1,204 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site1.Master" AutoEventWireup="true" CodeBehind="RecentTickets.aspx.cs" Inherits="AutomateTRYOUT.RecentTickets" %>
+
+<asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+</asp:Content>
+<asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
+
+     <div class="row">
+
+        <div class="col-lg-12">
+             <div class="text-center m-t-lg">
+      <h1>Recent Tickets Summary
+                </h1>
+
+      <asp:Panel  ScrollBars="Horizontal"  ID="PnlSarchPara" runat="server" Font-Names="Arial" Font-Size="Small" Style="border: 1px solid #000;" >
+
+
+       
+        <table align="Center" cellpadding="5">
+            
+            <tr>
+             
+
+                <td>
+                    <asp:Label ID="lblMachineNo" runat="server" Text="Machine No" Font-Size="Medium"></asp:Label>
+                   
+                </td>
+                <td>
+                    <asp:DropDownList ID="ddlMachineNo" runat="server" Width="100%" AppendDataBoundItems="true" AutoPostBack="true" OnSelectedIndexChanged="ddlMachineNo_SelectedIndexChanged">
+                        <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem>
+                    </asp:DropDownList>
+                </td>
+           
+                <td>
+                     <asp:Label ID="lblWyBill" runat="server" Text="Way Bill" Font-Size="Medium"></asp:Label>
+                </td>
+                <td>
+                     <asp:DropDownList ID="ddlWyBill" runat="server" Width="100%" AppendDataBoundItems="true"  AutoPostBack="true" OnSelectedIndexChanged="ddlWyBill_SelectedIndexChanged">
+                                 <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem> 
+                            </asp:DropDownList>
+                </td>
+
+                
+           
+                <td>
+                     <asp:Label ID="lblTicketCode" runat="server" Text="Conductor Code" Font-Size="Medium"></asp:Label>
+                </td>
+                <td>
+                     <asp:DropDownList ID="ddlConductor" runat="server" Width="100%" AppendDataBoundItems="true"  AutoPostBack="true" OnSelectedIndexChanged="ddlConductor_SelectedIndexChanged">
+                                 <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem> 
+                            </asp:DropDownList>
+                </td>
+
+           
+                
+               
+             <td>
+                    <asp:Button ID="BtnApply" runat="server" Width="70px"  Text="Filter" OnClick="BtnApply_Click" Visible="false" />
+
+                    <asp:Button ID="BtnReset" runat="server" Text="Reset" Width="70px" OnClick="BtnReset_Click"     />
+
+
+                </td>
+             
+            </tr>
+
+
+
+
+
+
+        </table>
+    </asp:Panel>
+                 </div>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <div class="col-lg-12">
+            <div class="text-center m-t-lg">
+                 <asp:Panel  ScrollBars="Horizontal"   ID="PnlMain" runat="server" style="overflow-x:scroll;" >
+
+                                <asp:Panel  ScrollBars="Horizontal"  ID="pnlHeader" runat="server" Visible="false" >
+                    <asp:Table ID="tblSummary" runat="server" CellPadding="2" CellSpacing="2" Font-Bold="True" Font-Size="Medium" GridLines="Both" HorizontalAlign="Left" Width="100%">
+                        <asp:TableRow runat="server">
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Total Fare</asp:TableCell>
+                            <asp:TableCell ID="tblCelTotalFare" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Full Ticket Fare</asp:TableCell>
+                            <asp:TableCell ID="tblCelFullTicketFare" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Half Ticket Fare</asp:TableCell>
+                            <asp:TableCell ID="tblHalfTicketFare" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Luggage Fare</asp:TableCell>
+                            <asp:TableCell ID="tblCelLuggageFare" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                             <asp:TableCell runat="server" HorizontalAlign="Left">Agent Ticket Count</asp:TableCell>
+                            <asp:TableCell ID="tblCelAgentTicketCount" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                        </asp:TableRow>
+                        <asp:TableRow runat="server"> 
+                           
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Concession Fare</asp:TableCell>
+                            <asp:TableCell ID="tblCelConcessionFare" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Expenses</asp:TableCell>
+                            <asp:TableCell ID="tblCelExpenses" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                             <asp:TableCell runat="server" HorizontalAlign="Left">Penalty</asp:TableCell>
+                            <asp:TableCell ID="tblCelPenalty" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                            <asp:TableCell runat="server" HorizontalAlign="Left">Passenger Count</asp:TableCell>
+                            <asp:TableCell ID="tblCelPaxCpunt" runat="server" HorizontalAlign="Right" BackColor="#FFFFCC"></asp:TableCell>
+                        </asp:TableRow>
+                    </asp:Table>
+                </asp:Panel>
+
+                <br />
+                <hr />
+
+                <asp:GridView ID="GridView1" runat="server"  EmptyDataText="Data not present"
+                    AllowPaging="True" CellPadding="4" PageSize="15" PagerSettings-Mode="NextPreviousFirstLast"
+                    OnPageIndexChanged="GridView1_PageIndexChanged" OnPageIndexChanging="GridView1_PageIndexChanging"
+                    OnRowDataBound="GridView1_OnRowDataBound"
+                    ShowFooter="True" PagerSettings-PageButtonCount="15" AutoGenerateColumns="False" Font-Names="Courier New" BackColor="White" BorderColor="#CC9966" BorderStyle="None" BorderWidth="1px" Width="100%" ForeColor="Black">
+                    <PagerStyle CssClass="pagination-ys" />
+                    <Columns>
+                        <asp:BoundField DataField="td_ticket_code" Visible="true" HeaderText="Type" />
+                        <asp:BoundField DataField="td_con_case_code" Visible="true" HeaderText="Details" />                        
+                        <asp:BoundField DataField="FullTicketFare" Visible="false" />                        
+                        <asp:BoundField DataField="HalfTicketFare" Visible="false" />                        
+                        <asp:BoundField DataField="PassFare" Visible="false" />
+                        <asp:BoundField DataField="FullTicketCount" Visible="false" />
+                        <asp:BoundField DataField="HalfTicketCount" Visible="false" />
+                        <asp:BoundField DataField="PassTicketCount" Visible="false" />
+
+                        <asp:BoundField DataField="Mc_Serial" HeaderText="Machine No" />
+                        <asp:BoundField HeaderText="Waybill No" DataField="wytd_waybill_no" />
+                        <asp:BoundField HeaderText="Ticket No" DataField="td_ticket_num" />
+                        <asp:BoundField HeaderText="Date" DataField="td_ticket_date" DataFormatString="{0:dd-MMM-yy}" />
+                        <asp:BoundField HeaderText="Time" DataField="td_ticket_time" DataFormatString="{0:hh:mm}" />
+                        <asp:BoundField HeaderText="Route" DataField="RouteName" />
+                        <asp:BoundField HeaderText="Boarding" DataField="FromStage" />
+                        <asp:BoundField HeaderText="Alighting" DataField="TOStage" />
+                        <asp:BoundField DataField="FullPaxCount" DataFormatString="{0:0}" HeaderText="f_cnt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="HalfPaxCount" DataFormatString="{0:0}" HeaderText="h_cnt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="LuggageCount" DataFormatString="{0:0}" HeaderText="L_cnt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="PassPaxCount" DataFormatString="{0:0}" HeaderText="P_cnt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="ConcessionAmount" DataFormatString="{0:0}" HeaderText="con_Amt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="TotalFare" DataFormatString="{0:0}" HeaderText="Tkt_Amt">
+                            <ItemStyle HorizontalAlign="Right" Font-Bold="True" />
+                        </asp:BoundField>
+                        <asp:BoundField DataField="wbp_vehicalno" HeaderText="Bus No"></asp:BoundField>
+                        <asp:BoundField DataField="wbp_condrdetails" HeaderText="C_No"></asp:BoundField>
+                        <asp:BoundField DataField="wbp_driver1details" HeaderText="D_No"></asp:BoundField>
+                    </Columns>
+                    <FooterStyle BackColor="#FFFFCC" ForeColor="#330099" />
+                    <HeaderStyle BackColor="#990000" Font-Bold="True" ForeColor="#FFFFCC" />
+
+                    <PagerSettings Mode="NumericFirstLast" PageButtonCount="3" FirstPageText="First" LastPageText="Last"></PagerSettings>
+
+                    <PagerStyle BackColor="#FFFFCC" ForeColor="#330099" HorizontalAlign="Center" />
+                    <RowStyle BackColor="White" ForeColor="#330099" />
+                    <SelectedRowStyle BackColor="#FFCC66" Font-Bold="True" ForeColor="#663399" />
+
+                    <SortedAscendingCellStyle BackColor="#FEFCEB" />
+                    <SortedAscendingHeaderStyle BackColor="#AF0101" />
+                    <SortedDescendingCellStyle BackColor="#F6F0C0" />
+                    <SortedDescendingHeaderStyle BackColor="#7E0000" />
+                </asp:GridView>
+
+                <p style="text-align:left">
+                    <b>Note</b> : F_Cnt=FullPaxCount, H_Cnt=HalfPaxCount, L_Cnt=LuggageCount, P_Cnt=PassCount, Con_Amt=ConcessionAmount, 
+                    Tkt_Amt=TicketAmount, BusNo=BusNo, C_No=ConductorNo, D_No=DriverNo.           
+                </p>
+
+                <asp:Table ID="Table1" runat="server" CellPadding="0" CellSpacing="0" Font-Bold="True" Font-Size="Small" GridLines="Both" HorizontalAlign="Center" Width="100%">
+                    <asp:TableRow runat="server">
+                        
+                      <%--   <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#af8f0f" ForeColor="#ffffff" Font-Size="X-Small">Inspector</asp:TableCell>--%>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#A9DFBF" ForeColor="#17202A" Font-Size="X-Small">Checked Ok</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#FCF3CF" ForeColor="#17202A" Font-Size="X-Small">Ordinary Case</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#D98880" ForeColor="#17202A" Font-Size="X-Small">Red Mark Case</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#E6B0AA" ForeColor="#17202A" Font-Size="X-Small">Outstanding Case</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#A3E4D7" ForeColor="#17202A" Font-Size="X-Small">Concession</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#E74C3C" ForeColor="#17202A" Font-Size="X-Small">Expenses</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#ABEBC6" ForeColor="#17202A" Font-Size="X-Small">Free Pass Category 1</asp:TableCell>                        
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#82E0AA" ForeColor="#17202A" Font-Size="X-Small">Free Pass Category 2</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#58D68D" ForeColor="#17202A" Font-Size="X-Small">RFID</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#BB8FCE" ForeColor="#17202A" Font-Size="X-Small">Recharge</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#3498DB" ForeColor="#17202A" Font-Size="X-Small">Penalty</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#E59866" ForeColor="#17202A" Font-Size="X-Small">Toll Collected</asp:TableCell>
+                        <asp:TableCell runat="server" HorizontalAlign="Center" BackColor="#ccff00" ForeColor="#17202A" Font-Size="X-Small">Agent Tickets</asp:TableCell>
+                    </asp:TableRow>
+                </asp:Table>
+  </asp:Panel>
+            </div>
+        </div>
+    </div>
+
+</asp:Content>

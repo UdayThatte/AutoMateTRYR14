@@ -1,0 +1,51 @@
+#Define File Location and file details On Client Machine
+location.on.file.system =C://AutomateSystemSynch//Exports/
+exported.json.fileName.prefix=55
+
+#Set Database Connectivity Properties
+db.connect.str=jdbc:mysql://localhost:3306/pratinidhi?autoReconnect=true&useSSL=false
+db.userid=root
+db.password=
+
+#Fetch Transaction from this Date (Format dd/mm/yyyy)
+db.set.date=09/08/2017
+
+#Number Of Transactions To Be Fetched At a Time
+transaction.limit=10000
+
+#Enable or disable delete uploaded file(true/false)
+delete.uploaded.file=false
+
+#Enable or disable backup of log file(true/false)
+create.logfile.backup=true
+
+#Maximum number of log files should be kept alive(applicable only if create.logfile.backup=false)
+logfile.max.index=10
+
+#Define Database Query
+db.query1=SELECT ticketdetails.td_ticket_code AS ticket_code, CASE WHEN LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))>=5 THEN CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)) ELSE CONCAT('14',REPEAT('0',5-LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))), RIGHT(waybillprogramming.wbp_etmno,3)) END AS terminal_device_id, '14' AS terminal_device_type, waybillprogramming.wbp_vehicalno AS bus_id, conductordetails.cd_condrdetails_code  AS conductor_id, drivernames.drv_code  AS driver_id, ticketdetails.td_route_no AS route_id, ticketdetails.id AS ticketDetailsID, CONCAT((CASE WHEN LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))>=5 THEN CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)) ELSE CONCAT('14',REPEAT('0',5-LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))), RIGHT(waybillprogramming.wbp_etmno,3)) END), DATE_FORMAT(STR_TO_DATE(ticketdetails.td_ticket_date, '%d/%m/%Y'),'%y%m%d')) AS terminal_device_transaction_id, '0000000001' AS terminal_device_transaction_sequence_number, CASE WHEN ticketdetails.td_ticket_code = 'PASS' THEN  ticketdetails.td_doc_rec_no END  AS card_id, case when (select id from DTLS where id = ticketdetails.id+1) then (select card_serial_number from DTLS where id = ticketdetails.id+1)end as card_serial_number, CASE WHEN ticketdetails.td_ticket_code = 'PASS' THEN ticketdetails.td_con_CASE_code ELSE '00' END  AS card_type, CASE WHEN (ticketdetails.td_con_CASE_code >=2 AND ticketdetails.td_con_CASE_code <= 28) THEN '12' ELSE '05' END AS transaction_type, STR_TO_DATE(ticketdetails.td_ticket_date, '%d/%m/%Y') AS transaction_date, CONCAT(STR_TO_DATE(td_ticket_date, '%d/%m/%Y'),' ',td_ticket_time)  AS transaction_time, ROUND((CASE WHEN CASE WHEN (ticketdetails.td_con_CASE_code >=2 AND ticketdetails.td_con_CASE_code <= 28) THEN '12' END  THEN 0.0 ELSE ticketdetails.td_ticket_fare END)/100,2)  AS transaction_amount, ROUND(ticketdetails.td_ticket_fare/100,2) AS transaction_value, CASE WHEN CASE WHEN (ticketdetails.td_con_CASE_code >=2 AND ticketdetails.td_con_CASE_code <= 28) THEN '12' END  THEN 'SmartCard' ELSE 'Cash' END AS payment_mode, ticketdetails.td_full_ticket + ticketdetails.td_half_ticket + ticketdetails.td_pass_ticket AS number_of_passengers, ticketdetails.td_half_ticket  AS number_of_half_tickets, StartPointView.start_point as start_point, EndPointView.end_point as end_point, 1 AS number_of_tickets_issued, ticketdetails.td_route_no AS route_number, ticketdetails.td_trip_no AS trip_number, 'true' AS allow_lane_change_flag, null AS amount_before_transaction, null AS amount_after_transaction, null AS card_balance_validity_time, null AS bonus_balance_validity_time, null AS lane_change_start_time, null AS  lane_change_END_time, ticketdetails.td_route_no AS start_route_number, ticketdetails.td_route_no AS END_route_number, null AS  lane_change_stop_id, null AS  lane_change_bus_type, null AS  lane_change_route_trip_number, null AS card_issue_time, null AS card_expiry_time, concat(CASE WHEN LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))>=5 THEN CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)) ELSE CONCAT('14',REPEAT('0',5-LENGTH(CONCAT('14',RIGHT(waybillprogramming.wbp_etmno,3)))), RIGHT(waybillprogramming.wbp_etmno,3)) END,ticketdetails.wytd_waybill_no) AS waybill_ref_no FROM  ticketdetails LEFT JOIN waybillprogramming ON ticketdetails.wytd_waybill_no=waybillprogramming.wbp_waybillno INNER JOIN routeprogramming ON  ticketdetails.td_route_no=routeprogramming.rp_routeno LEFT JOIN conductordetails ON  waybillprogramming.wbp_condrdetails=conductordetails.cd_condrdetails LEFT JOIN drivernames ON  waybillprogramming.wbp_driver1details=drivernames.name LEFT JOIN StartPointView ON ticketdetails.td_route_no=StartPointView.rpsd_routeno AND  ticketdetails.td_stg_from=StartPointView.rpsd_stgno LEFT JOIN EndPointView ON ticketdetails.td_route_no=EndPointView.rpsd_routeno AND  ticketdetails.td_stg_to=EndPointView.rpsd_stgno 
+
+db.query.time.condition1=WHERE STR_TO_DATE(ticketdetails.td_ticket_date, '%d/%m/%Y') >= STR_TO_DATE(' 
+
+db.query.time.condition2=', '%d/%m/%Y')
+
+db.query.id.condition=WHERE ticketdetails.id >  
+
+db.query2=ORDER BY ticketdetails.id limit 
+
+db.start.point.view=CREATE OR REPLACE VIEW StartPointVIEW AS  SELECT DISTINCT rpstagedetails.rpsd_routeno AS rpsd_routeno, rpstagedetails.rpsd_stgno AS rpsd_stgno, rpstagedetails.rpsd_triangleno AS rpsd_triangleno, RIGHT(rpstagedetails.rpsd_stgid,5) AS start_point FROM  rpstagedetails INNER JOIN ticketdetails ON rpstagedetails.rpsd_routeno = ticketdetails.td_route_no AND rpstagedetails.rpsd_stgno=ticketdetails.td_stg_FROM AND rpstagedetails.rpsd_triangleno='1' ORDER BY rpstagedetails.rpsd_routeno;
+
+db.end.point.view= CREATE OR REPLACE VIEW EndPointVIEW AS  SELECT DISTINCT rpstagedetails.rpsd_routeno AS rpsd_routeno, rpstagedetails.rpsd_stgno AS rpsd_stgno, rpstagedetails.rpsd_triangleno AS rpsd_triangleno, RIGHT(rpstagedetails.rpsd_stgid,5) AS end_point FROM  rpstagedetails INNER JOIN ticketdetails ON rpstagedetails.rpsd_routeno = ticketdetails.td_route_no AND rpstagedetails.rpsd_stgno=ticketdetails.td_stg_to AND rpstagedetails.rpsd_triangleno='1' ORDER BY rpstagedetails.rpsd_routeno;
+
+db.DTLS.view=CREATE OR REPLACE VIEW DTLS AS  SELECT id, td_doc_rec_no as card_serial_number from ticketdetails WHERE ticketdetails.td_ticket_code ='DTLS';
+
+#First Execution Time where the first time utility will export the file (Format yyyy-MM-dd HH:mm:ss)
+first.execution.Time = 2017-04-12 15:58:00
+selected.time.interval = 1800000
+
+#Define Rest Service i.e. Transaction Details
+restservice.url =http://hits.gwtrack.com/HITS/sync/data/transaction/upload
+restservice.header.username=M
+restservice.header.password=M
+restservice.file.key=json_transaction
+success_response_code=1

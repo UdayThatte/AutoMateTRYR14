@@ -1,0 +1,55 @@
+Used in Ticketing app
+agents,agents_temp (not for now but compatibility)
+cct_multi_card_details
+etmlist,inspector,inspector_temp
+log,log_demo,newver_busdetails,newver_clientmaster
+newver_clientticketconfig,newver_conductordetails
+newver_conductordetails_bkp,newver_conductordetails_temp
+newver_divdepotmanagement,newver_drivernames
+newver_drivernames_temp,newver_routeprogramming
+newver_routeprogramming_cct,newver_routeprogramming_temp
+newver_rpstagedetails,newver_rpstagedetails_cct,newver_rpstagedetails_temp
+newver_rpstagedetails_test,newver_ticketdetails
+newver_ticketdetails_bak,newver_trip_sheet,
+newver_waybillprogramming,usermasternew
+
+=================
+Unused for Now
+
+Table agents,agents_temp
+AgentPerformance.aspx
+SP `AgentPerformanceReport`
+
+
+Tb busdetails
+SP GetBusMaster
+VehicleMasterNew.aspx Not enabled in code
+
+Tb 
+
+
+========
+Not in code or SP
+
+Tables 
+busoperatormaster,card_submission,
+card_type_master,ccardtypr_multiplier,
+collectiondata,etim_password,form_access_role,
+luggagefare,main_menu,module,module_role,
+conductordetails,drivernames
+newver_trip_sheet_bak,
+newver_ticketdetails_lite
+newver_ticketdetails_bak1,newver_ticketdetails_tmp
+newver_waybill_summary,pages,recharge_voucher_details
+routeprogramming,rpstagedetails,rpstagedetailsnewver
+serviceoperatordetails,stagereport,user_role
+waybillprogramming
+=========
+
+NOT in TICKETING App
+Tb clientdata,clientdata2,clientdata3
+NATOLL02,clientdata6,clientmaster,natoll01,
+newver_clientdata3,table 58,ticketdetails
+toll_usernames,userclientaccess,usermaster
+=========
+

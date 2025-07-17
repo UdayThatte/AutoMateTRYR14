@@ -1,0 +1,21 @@
+INSERT INTO `newver_ticketdetails_bak` 
+SELECT * FROM `newver_ticketdetails` WHERE DATE(bi_ticket_datetime) < ADDDATE(CURRENT_DATE(), INTERVAL -31 DAY);
+
+DELETE FROM `newver_ticketdetails` WHERE DATE(bi_ticket_datetime) < ADDDATE(CURRENT_DATE(), INTERVAL -31 DAY);
+
+
+Select 
+A.ClientID,A.bi_ticket_datetime,A.wytd_waybill_no,A.Dep_Name,A.Mc_Serial,A.td_ticket_num,A.td_ticket_code,
+A.td_ticket_date,A.td_ticket_time,A.td_ticket_fare 
+from `newver_ticketdetails` A 
+INNER JOIN table `newver_ticketdetails_bak` B 
+ON A.ClientID = B.ClientID 
+and A.bi_ticket_datetime = B.bi_ticket_datetime 
+AND A.wytd_waybill_no = B.wytd_waybill_no 
+AND A.Dep_Name = B.Dep_Name 
+AND A.Mc_Serial = B.Mc_Serial 
+AND A.td_ticket_num = Btd_ticket_num 
+AND A.td_ticket_code = B.td_ticket_code 
+AND A.td_ticket_date = B.td_ticket_date 
+AND A.td_ticket_time = B.td_ticket_time 
+AND A.td_ticket_fare = B.td_ticket_fare;

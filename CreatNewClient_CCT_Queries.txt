@@ -1,0 +1,22 @@
+INSERT INTO newver_clientticketconfig
+          ( ClientID,TicketCode,ConcaseCode,Docketinterpretation,
+		  IsRevenue,IsTicketRecord,IsExpense,Comment,IsActive,IsCollection)
+SELECT 'DURGAMBA',TicketCode,ConcaseCode,Docketinterpretation,
+		  IsRevenue,IsTicketRecord,IsExpense,Comment,IsActive,IsCollection
+FROM newver_clientticketconfig WHERE ClientID = 'CCTHOFF1'
+==========================
+INSERT INTO newver_routeprogramming
+	(ClientID,rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,
+	rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status)
+SELECT 'DURGAMBA',rp_routeno,rp_routetype,rp_bustype,rp_triangleno,rp_startstg,
+	rp_endstg,rp_noofstops,rp_stgmarathiname,farechanged,status
+FROM newver_routeprogramming WHERE ClientID = 'CCTHOFF1'	
+====================================
+INSERT INTO newver_rpstagedetails
+	(ClientID,rpsd_routeno,rp_bustype,rpsd_triangleno,rpsd_stgcode,
+	rpsd_stgnamee,rpsd_stgnamem,rpsd_km,rpsd_stgno,rpsd_sub,rpsd_intrsstg,
+	rpsd_farenormal,status,rpsd_stgid)
+SELECT 'DURGAMBA',rpsd_routeno,rp_bustype,rpsd_triangleno,rpsd_stgcode,
+	rpsd_stgnamee,rpsd_stgnamem,rpsd_km,rpsd_stgno,rpsd_sub,rpsd_intrsstg,
+	rpsd_farenormal,status,rpsd_stgid
+FROM newver_rpstagedetails	WHERE ClientID = 'CCTHOFF1'

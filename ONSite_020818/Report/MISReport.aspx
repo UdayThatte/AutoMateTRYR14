@@ -1,0 +1,184 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site1.Master" AutoEventWireup="true" CodeBehind="MISReport.aspx.cs" Inherits="AutomateTRYOUT.Forms.MISReport" %>
+
+<%@ Register Assembly="Microsoft.ReportViewer.WebForms, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" Namespace="Microsoft.Reporting.WebForms" TagPrefix="rsweb" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+</asp:Content>
+<asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
+
+      <script type="text/javascript" language="javascript">
+
+    function pageLoad(sender, args) {
+        var sm = Sys.WebForms.PageRequestManager.getInstance();
+        if (!sm.get_isInAsyncPostBack()) {
+            sm.add_beginRequest(onBeginRequest);
+            sm.add_endRequest(onRequestDone);
+        }
+    }
+
+    function onBeginRequest(sender, args) {
+        var send = args.get_postBackElement().value;
+        if (displayWait(send) == "yes") {
+            $find('PleaseWaitPopup').show();
+        }
+    }
+
+    function onRequestDone() {
+        $find('PleaseWaitPopup').hide();
+    }
+
+    function displayWait(send) {
+        switch (send) {
+            case "Apply":
+                return ("yes");
+                break;
+            case "Find Way Bill":
+                return ("yes");
+                break;
+            case "Reset":
+                return ("yes");
+                break;
+                
+            default:
+                return ("no");
+                break;
+
+                
+        }
+    }
+    </script>
+     <asp:Panel  ScrollBars="Horizontal" ID="PleaseWaitMessagePanel" runat="server" CssClass="modalPopup"
+            >
+            <br />
+            <img src="../img/Loading/Loading.gif"  alt="Please wait" /></asp:Panel>
+
+    <asp:Button ID="HiddenButton" runat="server" CssClass="hidden" Text="Hidden Button"
+            ToolTip="Necessary for Modal Popup Extender" />
+        <cc1:ModalPopupExtender ID="PleaseWaitPopup" BehaviorID="PleaseWaitPopup"
+            runat="server" TargetControlID="HiddenButton" PopupControlID="PleaseWaitMessagePanel"
+            BackgroundCssClass="modalBackground">
+        </cc1:ModalPopupExtender>
+     <asp:ScriptManager ID="ScriptManager2" runat="server" AsyncPostBackTimeout="56000"></asp:ScriptManager>
+
+     <%--<asp:UpdatePanel ID="upnlAttendance" runat="server" RenderMode="Inline" UpdateMode="Conditional">--%>
+        <ContentTemplate>
+     <asp:Panel  ScrollBars="Horizontal" ID="PnlSarchMIS" runat="server" Font-Names="Arial" Font-Size="Small" Style="border: 1px solid #000;"  GroupingText="MIS Report">
+
+        <table align="Center" cellpadding="5">
+            <tr>
+                <td>
+                    <asp:Label ID="lblFromDateTime" runat="server" Text="From Date" Font-Size="Medium"></asp:Label>
+                     
+
+                </td>
+                <td>
+                   
+                    <asp:TextBox ID="txtFromDateTime" runat="server"></asp:TextBox>
+                    <cc1:CalendarExtender ID="cetxtFromDateTime" runat="server" TargetControlID="txtFromDateTime"
+                       Format="yyyy-MM-dd" Enabled="true">
+                    </cc1:CalendarExtender>
+                </td>
+                <td>
+                    <asp:Label ID="lblToDateTime" runat="server" Text="To Date " Font-Size="Medium"></asp:Label>
+                </td>
+                <td>
+                    <asp:TextBox ID="txtToDateTime" runat="server"></asp:TextBox>
+                    <cc1:CalendarExtender ID="cetxtToDateTime" runat="server" TargetControlID="txtToDateTime"
+                      Format="yyyy-MM-dd" Enabled="true" PopupPosition="BottomRight">
+                    </cc1:CalendarExtender>
+
+                </td>
+            </tr>
+             <tr>
+
+                      <td>
+                    <asp:Label ID="lblMachineNo" runat="server" Text="Machine No" Font-Size="Medium" Visible="False"></asp:Label>
+                   
+                </td>
+                <td>
+                    <asp:DropDownList ID="ddlMachineNo" runat="server" Width="100%" AppendDataBoundItems="true" Visible="False">
+                        <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem>
+                    </asp:DropDownList>
+                </td>
+
+           
+                
+
+                   <td>
+                     <asp:Label ID="lblWyBill" runat="server" Text="Way Bill" Font-Size="Medium" Visible="False"></asp:Label>
+                </td>
+                <td>
+                     <asp:DropDownList ID="ddlWyBill" runat="server" Width="100%" AppendDataBoundItems="true" Visible="False"  >
+                                 <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem> 
+                            </asp:DropDownList>
+                </td>
+
+
+
+              </tr>
+            <tr>
+
+                
+                   <td>
+                     <asp:Label ID="lblTicketCode" runat="server" Text="Conductor Code" Visible="false"></asp:Label>
+                </td>
+                <td>
+                     <asp:DropDownList ID="ddlConductor" runat="server" Width="100%" AppendDataBoundItems="true"  AutoPostBack="true" Visible="false" >
+                                 <asp:ListItem Text="ALL" Value="ALL">ALL</asp:ListItem> 
+                            </asp:DropDownList>
+                </td>
+
+                  <td>
+                    <asp:Label ID="lbldivdepotmanagement" runat="server" Text="Div And Depo Name" Visible="false"></asp:Label>
+                </td>
+                <td>
+                    <asp:DropDownList ID="ddldivdepotmanagement" runat="server" Width="100%"  Visible="false" AppendDataBoundItems="true">
+                        <asp:ListItem Text="ALL" Value="-1">ALL</asp:ListItem>
+                    </asp:DropDownList>
+                </td>
+           
+
+            </tr>
+
+
+            <tr>
+             
+                <td></td>
+             <td>
+                    <asp:Button ID="BtnAPPly" runat="server" Text="Apply" Width="60px" ValidationGroup="Save" OnClick="BtnAPPly_Click"   />
+
+                    <asp:Button ID="BtnReset" runat="server" Text="Reset" Width="60px" OnClick="BtnReset_Click"   />
+
+                  
+                </td>
+              
+                <td></td>
+            </tr>
+
+
+
+
+        </table>
+    </asp:Panel>
+
+         <asp:Panel  ScrollBars="Horizontal" ID="rptpnlMIS" runat="server" Width="100%" Height="100%" HorizontalAlign="Center">
+                <table>
+                    <tr>
+                        <td>
+                           
+                            <rsweb:ReportViewer ID="RptMIS" runat="server" AsyncRendering="False" SizeToReportContent="True"
+                                
+                                Font-Names="Verdana" EnableExternalImages="true" Font-Size="8pt" WaitMessageFont-Size="14pt"
+                                Width="1149px" InteractiveDeviceInfos="(Collection)" WaitMessageFont-Names="Verdana" BorderStyle="Solid" Height="68px">
+                             
+                            </rsweb:ReportViewer>
+                          
+                        </td>
+                    </tr>
+                </table>
+            </asp:Panel>
+
+               </ContentTemplate>
+    <%--</asp:UpdatePanel>--%>
+</asp:Content>

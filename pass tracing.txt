@@ -1,0 +1,38 @@
+explain 
+
+Select 
+A.id,
+A.Clientid as Operator,
+A.bi_waybill as WayBill,
+A.td_ticket_num as TickNo,
+A.bi_ticket_datetime as DateTime,
+A.td_route_no as Route,
+
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=A.ClientID And  rp.rp_routeno= A.td_route_no),A.td_route_no),'Not Specified') as 'Route',
+
+A.td_stg_from as StgFrom,
+A.td_stg_to as StgTo,
+
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =A.td_route_no AND rps.rpsd_stgno = A.td_stg_from And rps.ClientID=A.ClientID),'Not Defined') as 'fromstg',
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =A.td_route_no AND rps.rpsd_stgno = A.td_stg_to And rps.ClientID=A.ClientID),'Not Defined') as 'tostg',
+
+A.td_ticket_fare as Amount, 
+A.td_con_case_code as PassNo, 
+SUBSTRING(B.td_con_case_code,1,4) as Bal,
+SUBSTRING(B.td_con_case_code,6,6) as Exp,
+A.td_doc_rec_no as Type
+From newver_ticketdetails A
+LEFT JOIN newver_ticketdetails B
+ON A.bi_waybill = B.bi_waybill and A.td_ticket_num = B.td_ticket_num and A.Clientid = B.Clientid
+WHERE B.td_ticket_code = 'DTLS'
+AND A.td_ticket_code ='PASS'
+AND A.td_doc_rec_no = '03'
+and A.td_con_case_code ='000N1957    '
+ORDER by A.bi_ticket_datetime;
+= = = = = = = =  = = =
+
+
+

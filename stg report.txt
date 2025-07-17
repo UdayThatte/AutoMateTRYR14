@@ -1,0 +1,51 @@
+SELECT * FROM
+(SELECT ClientID as 'wClient',
+wbp_waybillno as 'WaybillNo',
+wbp_vehicalno as 'vehicalno',
+wbp_date  as 'wbp_date',
+wbp_condrdetails as 'ConductorCode',
+status as 'status' 
+FROM `newver_waybillprogramming`  
+WHERE ClientID = ClientID_In AND wbp_waybillno = WayBill_in )as  wbp
+LEFT JOIN
+(SELECT 
+tmp.MC as 'MachineNo',
+tmp.WBL as 'WaybillNo',
+tmp.STG as 'Stage',
+IFNULL(IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =tmp.ROUTE  AND rps.rpsd_stgno = tmp.STG And rps.ClientID=ClientID_In),tmp.STG),'Not Defined') as 'STGNAME',
+tmp.TRIP as 'TRP',
+tmp.ROUTE as 'RUT',
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=ClientID_In And  rp.rp_routeno= tmp.ROUTE ),tmp.ROUTE ),'Not Defined') as 'ROUTENAME',
+SUM(tmp.FULL) as 'FUL',
+SUM(tmp.HLF) as 'HALF',
+SUM(tmp.LUG) as 'LUGG',
+SUM(tmp.PAS) as 'PASS',
+SUM(tmp.CASHAMT) as 'CSHAMT',
+SUM(tmp.RFIDAMT) as 'RFAMT'
+FROM
+(SELECT 
+Mc_serial as 'MC',
+bi_waybill as 'WBL',
+td_trip_no as 'TRIP',
+td_route_no as 'ROUTE',
+td_stg_from as 'STG',
+td_full_ticket as 'FULL',
+td_half_ticket as 'HLF',
+td_luggage_ticket as 'LUG',
+td_pass_ticket as 'PAS',
+(CASE WHEN 
+NOT ((CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4) AND `td_ticket_code`='PASS') 
+THEN `td_ticket_fare` ELSE 0 END ) AS 'CASHAMT',
+(CASE WHEN 
+(CAST(`td_doc_rec_no` AS UNSIGNED) between 3 and 4)   AND `td_ticket_code`='PASS'
+THEN `td_ticket_fare` ELSE 0  END) AS 'RFIDAMT' 
+FROM `newver_ticketdetails` 
+WHERE `bi_waybill` = WayBill_in AND ClientID = ClientID_In  
+AND (`td_ticket_code` != 'DTLS') AND (`td_ticket_code` != 'EXPN') AND (`td_ticket_code` !='RCVT')
+ORDER BY td_trip_no,td_stg_from) tmp
+GROUP BY Stage,TRP
+ORDER BY Stage,TRP) stgrep
+ON wbp.WaybillNo = stgrep.WaybillNo
+ORDER BY stgrep.Stage,stgrep.TRP;

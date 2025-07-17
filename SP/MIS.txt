@@ -1,0 +1,34 @@
+BEGIN
+
+ SELECT
+ 	wbp.wbp_date as Date,
+ wbp.MachineNo as MachineNo,
+ wbp.wbp_waybillno as 'WaybillNo',
+
+ wbp.wbp_vehicalno as vehicalno,
+ 'routename' as Route, 
+ 1 as TotalSaleA,
+  1 as TotalRFIDuseB,
+
+ 176 as totalexpressC,
+ 1654 as TotalCollection, -- a - B- C 
+ 964 As TotalKM,
+ 7.856 as EPKM,
+ 7 as NoOfTrips,
+ 167 AS Paxtrvals,
+ 98.54 AS Avgearning,
+ 764 as TotalTicketIssues,
+ wbp.wbp_condrdetails as conductorName,
+  -- wbp.wbp_divisioncode AS DriverName
+
+
+ -- FROM
+ 	-- newver_waybillprogramming wbp
+ -- where 
+ 	-- wbp.ClientID = ClientID_in  -- And  wbp.bi_date BETWEEN FromDate_in   And  ToDate_in   
+-- AND wbp.bi_date BETWEEN FromDate_in And ToDate_in
+ -- order by wbp.wbp_waybillno desc 
+ -- limit 50;
+-- "AUTOMATE","01-01-2010","01-01-2020",-1
+
+END

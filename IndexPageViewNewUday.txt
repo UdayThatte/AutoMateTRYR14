@@ -1,0 +1,30 @@
+BEGIN
+SELECT * FROM
+(SELECT
+ wbp.id as id,
+	wbp.MachineNo as MachineNo,
+	wbp.wbp_date,
+	wbp.wbp_waybillno as 'WaybillNo',
+	wbp.`status`,
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as condrName,
+ wbp.wbp_driver1details  as driverdetails ,
+  wbp.wbp_condrdetails as 'ConductorCode',
+wbp.wbp_vehicalno as vehicalno 
+FROM
+	newver_waybillprogramming wbp
+where
+	wbp.ClientID = ClientID_in
+order by wbp.wbp_waybillno desc ) as t1
+
+LEFT JOIN 
+(SELECT 
+td.wytd_waybill_no as 'Wybill', 
+(SUM(IFNULL((CASE WHEN td.td_ticket_code='CONC' OR td.td_ticket_code='LUGG' OR td.td_ticket_code='PNTY' OR td.td_ticket_code='0000' OR ( td.td_ticket_code='PASS' AND (CAST(td.td_doc_rec_no as UNSIGNED) > 2)) THEN td.td_ticket_fare ELSE 0 END ),0))) - (SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0 END ),0))) - (SUM(IFNULL((CASE WHEN td.td_ticket_code='PASS' AND (CAST(td.td_doc_rec_no as UNSIGNED) > 2) THEN td.td_pass ELSE 0 END ),0))) as 'NetCash'
+FROM newver_ticketdetails td 
+WHERE td.ClientID = ClientID_in
+AND td.td_ticket_code IN (select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  )
+Group by td.wytd_waybill_no ORDER by td.wytd_waybill_no DESC) as  t2 
+ON  t1.WaybillNo = t2.Wybill
+order by t1.WaybillNo desc
+LIMIT 200;
+END

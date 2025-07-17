@@ -1,0 +1,125 @@
+BEGIN
+
+
+
+SELECT 
+td.td_ticket_date as Date,
+td.wytd_waybill_no as 'WaybillNo',
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as vehicalno ,
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as conductorName,
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as DriverName, 
+(select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no) as Route,
+td.CollectionRevenue as TotalCollection,
+IFNULL(td.td_ticket_fare, 0)/(IFNULL(td.td_full_ticket, 0)+IFNULL(td.td_half_ticket, 0)) as Avgearning,
+IFNULL(td.td_pass_ticket, 0)  as 'TotalTicketIssues',
+
+
+td.td_ticket_time,
+td.td_ticket_num,
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (',rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_from And rps.ClientID=td.ClientID),'Not Defined') as FromStage,
+IFNULL((select CONCAT(rps.rpsd_stgcode,' (', rps.rpsd_stgnamee, ')') From newver_rpstagedetails rps where rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no AND rps.rpsd_stgno = td.td_stg_to And rps.ClientID=td.ClientID),'Not Defined') as TOStage,
+td.td_ticket_code,
+td.td_con_case_code,
+
+IFNULL(td.td_ticket_fare, 0) as 'TotalFare',
+
+CASE WHEN td.td_ticket_code
+ IN 
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+AND
+ td.td_ticket_code NOT IN 
+ 	('CONC')
+THEN  IFNULL(td.td_full * td.td_full_ticket, 0) ELSE 0 END as 'FullTicketFare',
+
+
+CASE WHEN td.td_ticket_code
+ IN 
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+AND
+ td.td_ticket_code NOT IN 
+ 	('CONC')
+THEN  IFNULL(td.td_half * td.td_half_ticket, 0) ELSE 0 END as 'HalfTicketFare',
+
+IFNULL(td.td_luggage, 0) as 'LuggageFare',
+
+IFNULL(td.td_pass, 0) as 'PassFare',
+
+IFNULL(td.td_full_ticket, 0)+IFNULL(td.td_half_ticket, 0) as 'PaxCount',
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+IFNULL((CASE WHEN td.td_full_ticket>0 THEN 1 ELSE 0 END  ),0) as 'FullTicketCount',
+
+IFNULL((CASE WHEN td.td_half_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'HalfTicketCount',
+
+IFNULL((CASE WHEN td.td_pass_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'PassTicketCount',
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Expenses',
+IFNULL((CASE WHEN td.td_ticket_code='PNTY' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Penalty',
+
+
+CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE 
+	CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+		CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 
+-- td.td_ticket_fare 
+	1 ELSE 0 END
+	END
+END as 'IsAgentTicket'
+
+
+
+
+FROM
+newver_ticketdetails td
+ where 1=1
+AND td.ClientID = ClientID_in  AND td.bi_ticket_datetime  
+
+ BETWEEN FromDate_in And ToDate_in
+
+GROUP BY td.td_ticket_date,td.wytd_waybill_no,td.td_route_no
+order by -- td.id desc,
+td.td_ticket_num ASC 
+limit 1000;
+
+
+ -- SELECT
+ 	-- wbp.wbp_date as Date,
+ -- wbp.MachineNo as MachineNo,
+ -- wbp.wbp_waybillno as 'WaybillNo',
+
+ -- wbp.wbp_vehicalno as vehicalno,
+ -- 'routename' as Route, 
+ -- 1 as TotalSaleA,
+  -- 1 as TotalRFIDuseB,
+
+ -- 176 as totalexpressC,
+ -- 1654 as TotalCollection, -- a - B- C 
+ -- 964 As TotalKM,
+ -- 7.856 as EPKM,
+ -- 7 as NoOfTrips,
+ -- 167 AS Paxtrvals,
+ -- 98.54 AS Avgearning,
+ -- 764 as TotalTicketIssues,
+ -- wbp.wbp_condrdetails as conductorName,
+  -- wbp.wbp_divisioncode AS DriverName
+
+
+ -- FROM
+ 	-- newver_waybillprogramming wbp
+ -- where 
+ 	-- wbp.ClientID = ClientID_in  -- And  wbp.bi_date BETWEEN FromDate_in   And  ToDate_in   
+-- AND wbp.bi_date BETWEEN FromDate_in And ToDate_in
+ -- order by wbp.wbp_waybillno desc 
+ -- limit 50;
+-- "AUTOMATE","01-01-2010","01-01-2020",-1
+
+END

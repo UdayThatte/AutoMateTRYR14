@@ -1,0 +1,272 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/Site1.Master" AutoEventWireup="true" CodeBehind="ReportRFIDPass.aspx.cs" Inherits="AutomateTRYOUT.Report.ReportRFIDPass" %>
+<%@ Register Assembly="Microsoft.ReportViewer.WebForms, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91" Namespace="Microsoft.Reporting.WebForms" TagPrefix="rsweb" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="cc1" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
+    <style type="text/css">
+        .auto-style1 {
+            width: 400px;
+        }
+        
+    </style>
+
+<%-- Following code is to be checked Uday 041219  
+    <style type="text/css">
+    #reportviewer {
+        width: 1025px !important;
+        height: 570px !important;
+      }
+    .printpage {
+        background: url('../Content/Icons/Print.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .gotofirstpage {
+        background: url('../Content/Icons/Gotofirst.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .gotopreviouspage {
+        background: url('../Content/Icons/Previous.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .gotonextpage {
+        background: url('../Content/Icons/Next.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .gotolastpage {
+        background: url('../Content/Icons/Gotolast.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .export {
+        background: url('../Content/Icons/Export.png');
+        width: 25px;
+        height: 25px;
+        margin-top: 5px;
+        background-position: top;
+        background-repeat: no-repeat;
+    }
+    .pdfexport {
+        background: url('../Content/Icons/Pdf.png');
+        width: 25px;
+        height: 25px;
+        background-position: left;
+        background-repeat: no-repeat;
+    }
+    .wordexport {
+        background: url('../Content/Icons/Word.png');
+        width: 25px;
+        height: 25px;
+        background-position: left;
+        background-repeat: no-repeat;
+    }
+    .excelexport {
+        background: url('../Content/Icons/Excel.png');
+        width: 25px;
+        height: 25px;
+        background-position: left;
+        background-repeat: no-repeat;
+    }
+    .htmlexport {
+        background: url('../Content/Icons/Html.png');
+        width: 25px;
+        height: 25px;
+        background-position: left;
+        background-repeat: no-repeat;
+    }
+    .zoominpage {
+        background: url('../Content/Icons/Zoomin.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .zoomoutpage {
+        background: url('../Content/Icons/Zoomout.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .Fittopage {
+        background: url('../Content/Icons/FittoPage.png');
+        width: 25px;
+        height: 18px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .refereshpage {
+        background: url('../Content/Icons/Refresh.png');
+        width: 25px;
+        height: 25px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    #toolbarTemplate div {
+        display: inline-block;
+    }
+    #toolbarTemplate div ul li {
+            display: inline-block;
+    }
+    #toolbarTemplate {
+        height: 40px;
+        padding-top: 5px;
+    }
+    #textBox {
+        width: 30px; height: 20px;
+         text-align: center;
+    }
+</style>--%>
+
+        
+    
+</asp:Content>
+<asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
+
+      <script type="text/javascript" language="javascript">
+
+    function pageLoad(sender, args) {
+        var sm = Sys.WebForms.PageRequestManager.getInstance();
+        if (!sm.get_isInAsyncPostBack()) {
+            sm.add_beginRequest(onBeginRequest);
+            sm.add_endRequest(onRequestDone);
+        }
+    }
+
+    function onBeginRequest(sender, args) {
+        var send = args.get_postBackElement().value;
+        if (displayWait(send) == "yes") {
+            $find('PleaseWaitPopup').show();
+        }
+    }
+
+    function onRequestDone() {
+        $find('PleaseWaitPopup').hide();
+    }
+
+    function displayWait(send) {
+        switch (send) {
+            case "Apply":
+                return ("yes");
+                break;
+            case "Find Way Bill":
+                return ("yes");
+                break;
+            case "Reset":
+                return ("yes");
+                break;
+                
+            default:
+                return ("no");
+                break;
+
+                
+        }
+    }
+    </script>
+     <asp:Panel  ScrollBars="Horizontal" ID="PleaseWaitMessagePanel" runat="server" CssClass="modalPopup"
+            >
+            <br />
+            <img src="../img/Loading/Loading.gif"  alt="Please wait" /></asp:Panel>
+
+    <asp:Button ID="HiddenButton" runat="server" CssClass="hidden" Text="Hidden Button"
+            ToolTip="Necessary for Modal Popup Extender" />
+        <cc1:ModalPopupExtender ID="PleaseWaitPopup" BehaviorID="PleaseWaitPopup"
+            runat="server" TargetControlID="HiddenButton" PopupControlID="PleaseWaitMessagePanel"
+            BackgroundCssClass="modalBackground">
+        </cc1:ModalPopupExtender>
+     <asp:ScriptManager ID="ScriptManager2" runat="server" AsyncPostBackTimeout="56000"></asp:ScriptManager>
+
+     <%--<asp:UpdatePanel ID="upnlAttendance" runat="server" RenderMode="Inline" UpdateMode="Conditional">--%>
+        <ContentTemplate>
+     <asp:Panel  ScrollBars="Horizontal" ID="PnlSarchMIS" runat="server" Font-Names="Arial" Font-Size="Small" Style="border: 1px solid #000; margin-left: 0px;"  GroupingText="RFID Pass Report">
+
+        <table align="Center" cellpadding="5"  >
+            <tr>
+                <td>
+                    <asp:Label ID="lblFromDateTime" runat="server" Text="From Date" Font-Size="Medium"></asp:Label>
+                     
+
+                </td>
+                <td>
+                   
+                    <asp:TextBox ID="txtFromDateTime" runat="server"></asp:TextBox>
+                    
+                    <cc1:CalendarExtender ID="cetxtFromDateTime" runat="server" TargetControlID="txtFromDateTime" 
+                        CssClass="MyCalendar"
+                        Format="yyyy-MM-dd" Enabled="true">
+                    </cc1:CalendarExtender> 
+                    
+                </td>
+                <td>
+                    <asp:Label ID="lblToDateTime" runat="server" Text="To Date " Font-Size="Medium"></asp:Label>
+                </td>
+                <td>
+                    <asp:TextBox ID="txtToDateTime" runat="server"></asp:TextBox>
+                    <cc1:CalendarExtender ID="cetxtToDateTime" runat="server" TargetControlID="txtToDateTime"
+                        CssClass ="MyCalendar"
+                        Format="yyyy-MM-dd" Enabled="true" PopupPosition="BottomRight">
+                    </cc1:CalendarExtender>
+                </td>
+            </tr>
+                <td>
+                   <asp:Label ID="Label_pas_typ" runat="server" Text="PASS Type" Font-Size="Medium"></asp:Label>
+                </td>
+                <td>
+                     <asp:TextBox ID="txtPastyp" runat="server" MaxLength="2"></asp:TextBox>
+                </td>
+            <tr>
+             
+             <td>
+                    <asp:Button ID="BtnAPPly" runat="server" Text="Apply" Width="60px" ValidationGroup="Save" OnClick="BtnAPPly_Click"   />
+
+                    <asp:Button ID="BtnReset" runat="server" Text="Reset" Width="60px" OnClick="BtnReset_Click"   />
+
+                  
+                </td>
+              
+                
+            </tr>
+            <tr>
+                <td>
+
+                </td>
+            </tr>
+
+
+        </table>
+    </asp:Panel>
+
+         <asp:Panel  ScrollBars="Horizontal" ID="rptpnlRFID" runat="server" Width="100%" Height="100%" HorizontalAlign="Center" BorderStyle="Solid" BorderWidth="1px">
+                <table >
+                    <tr>
+                       <td> 
+                       <%--   <td class="auto-style1"> found followinf solution from web for drop down misplace --%>
+                           <div style="margin-left: 10px; position: relative; ">
+                            <rsweb:ReportViewer ID="RptRFID" runat="server" AsyncRendering="False" SizeToReportContent="True"
+                                Font-Names="Verdana" EnableExternalImages="true" Font-Size="8pt" WaitMessageFont-Size="14pt"
+                                Left="0px"  InteractiveDeviceInfos="(Collection)" WaitMessageFont-Names="Verdana" BorderStyle="Solid" Height="93px"
+                                KeepSessionAlive="False" ShowFindControls="False" ShowPrintButton="False" ShowRefreshButton="False" ShowZoomControl="False" ShowBackButton="False"  BorderWidth="1px">
+                            </rsweb:ReportViewer>
+                          </div>
+                        </td> 
+                    </tr>
+                </table>
+            </asp:Panel>
+
+               </ContentTemplate>
+    <%--</asp:UpdatePanel>--%>
+</asp:Content>

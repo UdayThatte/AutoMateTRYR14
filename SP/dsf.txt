@@ -1,0 +1,76 @@
+
+SELECT 
+td.Mc_Serial,
+td.wytd_waybill_no,
+td.td_ticket_date,
+IFNULL(IFNULL((select CONCAT(rp.rp_routeno,'-',rp.rp_startstg,'-',rp.rp_endstg) from newver_routeprogramming rp 
+where rp.ClientID=td.ClientID And  rp.rp_routeno= td.td_route_no),td.td_route_no),'Not Specified') as Route,
+SUM(IFNULL(td.td_ticket_fare+ IFNULL(td.td_pass, 0) , 0)) as 'TotalSaleA',
+SUM(IFNULL(td.td_pass, 0)) as 'TotalRFIDuseB',
+SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'TotalExpensesC',
+
+SUM(IFNULL(td.td_ticket_fare, 0))-SUM(IFNULL((CASE WHEN td.td_ticket_code='EXPN' THEN td.td_ticket_fare ELSE 0  END ),0)) as 'TotalCollection',
+
+IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = td.ClientID and  rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no),0) as km,
+IFNULL( max(td.td_trip_no),0) as trips,
+
+IFNULL( (select max(rpsd_km)  From newver_rpstagedetails rps where rps.ClientID = td.ClientID and  rps.rpsd_triangleno=1 
+AND rps.rpsd_routeno =td.td_route_no),0) *
+IFNULL( max(td.td_trip_no),0) as TotalKms,
+
+IFNULL(td.td_luggage, 0) as 'LuggageFare',
+
+
+IFNULL(td.td_full_ticket, 0)+IFNULL(td.td_half_ticket, 0) as 'PaxCount',
+
+IFNULL(td.td_full_ticket, 0) as 'FullPaxCount',
+
+IFNULL(td.td_half_ticket, 0)  as 'HalfPaxCount',
+
+IFNULL((CASE WHEN td.td_luggage>0 THEN 1 ELSE 0 END  ),0)  as 'LuggageCount',
+
+IFNULL(td.td_pass_ticket, 0)  as 'PassPaxCount',
+
+IFNULL((CASE WHEN td.td_full_ticket>0 THEN 1 ELSE 0 END  ),0) as 'FullTicketCount',
+
+IFNULL((CASE WHEN td.td_half_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'HalfTicketCount',
+
+IFNULL((CASE WHEN td.td_pass_ticket>0 THEN 1 ELSE 0 END  ),0)  as 'PassTicketCount',
+
+IFNULL((CASE WHEN td.td_ticket_code='CONC' THEN td.td_ticket_fare ELSE 0  END ),0) as 'ConcessionAmount',
+IFNULL((CASE WHEN td.td_ticket_code='PNTY' THEN td.td_ticket_fare ELSE 0  END ),0) as 'Penalty',
+
+
+CASE WHEN td.td_con_case_code IS NULL THEN 0 ELSE 
+	CASE WHEN LENGTH(td.td_con_case_code)<>12 THEN 0 ELSE 
+		CASE WHEN substr(td.td_con_case_code,9,1) = 'A' THEN 
+-- td.td_ticket_fare 
+	1 ELSE 0 END
+	END
+END as 'IsAgentTicket',
+
+
+
+(select wbp.wbp_vehicalno from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_vehicalno ,
+(select wbp.wbp_condrdetails from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_condrdetails,
+(select wbp.wbp_driver1details from newver_waybillprogramming wbp where wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) as wbp_driver1details 
+
+FROM
+newver_ticketdetails td
+ where 1=1
+AND td.ClientID = 'AUTOMATE'  AND td.bi_ticket_datetime  
+
+BETWEEN '2012-01-01' And '2018-01-01'
+
+AND td.td_ticket_code IN 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsTicketRecord = 1 ) 
+And td.wytd_waybill_no IN ( CASE WHEN 'ALL' ='ALL' THEN td.wytd_waybill_no ELSE 'ALL'  END) 
+And td.bi_waybill IN (  (SELECT wbp2.wbp_waybillno from newver_waybillprogramming wbp2 where wbp2.ClientID= 'AUTOMATE'  
+AND wbp2.MachineNo = (CASE WHEN 'ALL'='ALL' THEN wbp2.MachineNo ELSE 'ALL' END ) ) -- '17050104'
+	  -- END
+) 
+GROUP BY td.ClientID,td.td_ticket_date,td.Mc_Serial,td.wytd_waybill_no,td.td_route_no
+
+order by -- td.id desc,
+td.ClientID,td.td_ticket_date,td.Mc_Serial,td.wytd_waybill_no,td.td_route_no
+

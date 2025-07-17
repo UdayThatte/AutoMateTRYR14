@@ -1,0 +1,105 @@
+19-06-2017
+
+
+
+SELECT
+	wbp.MachineNo as MachineNo,
+	wbp.wbp_date,
+	wbp.wbp_waybillno as 'WaybillNo',
+	wbp.`status`,
+  wbp.wbp_condrdetails as 'ConductorCode',
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+AND 
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as TotalFare,
+
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as ConcessionFare,
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	('EXPN') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Expenses,
+
+(SELECT IFNULL(sum(td.td_ticket_fare), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	('PNTY') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as Penalty,
+
+
+(SELECT IFNULL(sum(td.td_full * td.td_full_ticket), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+AND
+ td.td_ticket_code NOT IN 
+ 	('CONC')
+AND 
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+ as FullTicketFare,
+ 
+(SELECT IFNULL(sum(td.td_half * td.td_half_ticket), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	(select cc.TicketCode from newver_clientticketconfig cc where cc.ClientID = td.ClientID  and  cc.IsActive = 1  AND cc.IsRevenue = 1 )
+AND
+ td.td_ticket_code NOT IN 
+ 	('CONC')
+AND 
+ wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID) 
+ as HalfTicketFare,
+
+(SELECT  IFNULL(sum(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+AND td.td_ticket_code in ('LUGG')
+)  as 'LuggageFare',
+
+IFNULL((SELECT  count(1) FROM newver_ticketdetails td WHERE  td.td_con_case_code like '%A%' AND 
+wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID),0)  as AgentTicket,
+
+(SELECT IFNULL(sum(td.td_pass), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as PassFare,
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)   
+as 'PaxCount',
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no    
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+as 'FullPaxCount',
+(SELECT IFNULL(sum(td.td_half_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no 
+AND  td.td_ticket_code NOT IN  	('CONC') and wbp.ClientID = td.ClientID)
+as 'HalfPaxCount',
+
+(SELECT IFNULL(sum(td.td_full_ticket), 0)	+ IFNULL(sum(td.td_half_ticket), 0) 
+	FROM newver_ticketdetails td WHERE  
+ td.td_ticket_code IN 
+ 	('CONC') AND  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID)  as 'ConcessionPaxCount',
+
+(SELECT  IFNULL(count(td.td_ticket_fare), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no  and wbp.ClientID = td.ClientID
+AND td.td_ticket_code in ('LUGG')
+)  as 'LuggageCount',
+
+(SELECT IFNULL(sum(td.td_pass_ticket), 0) FROM newver_ticketdetails td WHERE  wbp.wbp_waybillno = td.wytd_waybill_no and wbp.ClientID = td.ClientID) 
+as 'PassCount'
+
+	
+FROM
+	newver_waybillprogramming wbp
+where
+	wbp.ClientID = ClientID_in 
+AND 
+wbp.MachineNo IN ( CASE WHEN ddlMachineNo_in  ='ALL' THEN wbp.MachineNo ELSE ddlMachineNo_in    END)   And 
+
+wbp.wbp_waybillno IN ( CASE WHEN ddlWyBill_in ='ALL' THEN wbp.wbp_waybillno ELSE ddlWyBill_in   END) And 
+     
+wbp.wbp_condrdetails IN ( CASE WHEN ddlConductor_in  ='ALL' THEN wbp.wbp_condrdetails ELSE ddlConductor_in    END)
+
+order by wbp.wbp_waybillno desc 
+limit 50;
+
+
+
+--------------------------

@@ -1,0 +1,29 @@
+BEGIN
+SELECT * FROM
+(SELECT
+ wbp.id as id,
+	wbp.MachineNo as MachineNo,
+	wbp.wbp_date,
+	wbp.wbp_waybillno as 'WaybillNo',
+	wbp.`status`,
+(select max(cd.cd_condrdetails) from newver_conductordetails cd Where cd.cd_condrdetails_code=wbp.wbp_condrdetails And cd.ClientID=wbp.ClientID) as condrName,
+ wbp.wbp_driver1details  as driverdetails ,
+  wbp.wbp_condrdetails as 'ConductorCode',
+wbp.wbp_vehicalno as vehicalno 
+FROM
+	newver_waybillprogramming wbp
+where
+	wbp.ClientID = ClientID_in
+) as t1
+
+LEFT JOIN 
+(SELECT 
+ts.TS_WayBill as 'Wybill', 
+ ts.TS_Inflow as 'NetCash'
+FROM newver_trip_sheet ts 
+WHERE ts.ClientID = ClientID_in
+Group by ts.TS_WayBill ) as  t2 
+ON  t1.WaybillNo = t2.Wybill
+order by t1.WaybillNo desc
+LIMIT 200;
+END
