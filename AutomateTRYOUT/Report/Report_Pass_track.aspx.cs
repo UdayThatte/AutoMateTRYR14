@@ -71,7 +71,7 @@ namespace AutomateTRYOUT.Report
                     + "ON A.bi_waybill = B.bi_waybill and A.td_ticket_num = B.td_ticket_num and A.Clientid = B.Clientid "
                     + "WHERE B.td_ticket_code = 'DTLS' "
                     + "AND A.td_ticket_code = 'PASS' "
-                    + "AND(A.td_doc_rec_no = '03' OR A.td_doc_rec_no = '04') "
+                    + "AND(A.td_doc_rec_no = '03' OR A.td_doc_rec_no = '04' OR A.td_doc_rec_no = '05') "
                     + "AND A.td_con_case_code = '" + txtPasNo.Text.PadRight(12) + "' "
                     + "AND A.bi_ticket_datetime BETWEEN concat('" + txtFromDateTime.Text + "', ' 00:00:00') AND concat('" + txtToDateTime.Text + "',' 23:59:59') "
                     + "AND A.Clientid IN(SELECT ClientID from newver_clientmaster where GroupID = '" + Session["GroupID"].ToString() + "') "
